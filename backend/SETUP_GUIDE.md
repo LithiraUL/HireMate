@@ -28,7 +28,7 @@ npm install
 5. Copy the connection string
 6. Open `.env` file and replace:
    ```
-   MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/hiremate?retryWrites=true&w=majority
+   
    ```
 
 #### Option B: Local MongoDB
@@ -36,7 +36,9 @@ npm install
 1. Download from https://www.mongodb.com/try/download/community
 2. Install and start MongoDB service
 3. Keep default `.env` setting:
+   ```
    
+   ```
 
 ### 3. Generate JWT Secret
 
@@ -49,7 +51,7 @@ Generate a secure random string:
 
 Update in `.env`:
 ```
-JWT_SECRET=<paste_generated_string_here>
+
 ```
 
 ### 4. Setup Cloudinary
@@ -92,17 +94,17 @@ EMAIL_PASSWORD=abcd efgh ijkl mnop  (16 chars from Google)
 Your `.env` should look like this (with real values):
 
 ```env
-MONGODB_URI=
-JWT_SECRET=
-JWT_EXPIRE=
-PORT=
+MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/hiremate
+JWT_SECRET=aB3xK9mP2nQ8rT5vY7wZ1cD4eF6gH0iJ
+JWT_EXPIRE=30d
+PORT=5000
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3001
 CLOUDINARY_CLOUD_NAME=dxxxxxxxx
-CLOUDINARY_API_KEY=
-CLOUDINARY_API_SECRET=
+CLOUDINARY_API_KEY=123456789012345
+CLOUDINARY_API_SECRET=abcdefghijk-lmnopqr
 EMAIL_USER=youremail@gmail.com
-EMAIL_PASSWORD=
+EMAIL_PASSWORD=abcd efgh ijkl mnop
 ```
 
 ### 7. Start the Backend Server
