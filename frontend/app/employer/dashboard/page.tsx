@@ -35,7 +35,7 @@ export default function EmployerDashboard() {
       
       // Get all applications for all jobs
       const allApplications = await Promise.all(
-        jobsData.map((job) => applicationService.getApplicationsForJob(job.jobId))
+        jobsData.map((job) => applicationService.getApplicationsForJob(job._id))
       );
       setApplications(allApplications.flat());
     } catch (error) {
@@ -133,7 +133,7 @@ export default function EmployerDashboard() {
             <h3 className="text-lg font-semibold mb-4">Recent Job Postings</h3>
             <div className="space-y-3">
               {jobs.slice(0, 3).map((job) => (
-                <div key={job.jobId} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <div key={job._id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">{job.title}</p>
                     <p className="text-sm text-gray-600">{job.status === 'open' ? 'Active' : 'Closed'}</p>

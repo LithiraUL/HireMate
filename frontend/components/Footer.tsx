@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FiGithub, FiLinkedin, FiMail } from 'react-icons/fi';
 
 const Footer: React.FC = () => {
   return (
@@ -91,21 +90,10 @@ const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-8 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-400 text-sm">
+        <div className="mt-8 pt-8 border-t border-gray-800">
+          <p className="text-gray-400 text-sm text-center">
             © 2025 HireMate. All rights reserved. | University of Moratuwa
           </p>
-          <div className="flex space-x-4 mt-4 md:mt-0">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <FiGithub className="h-6 w-6" />
-            </a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors">
-              <FiLinkedin className="h-6 w-6" />
-            </a>
-            <a href="mailto:support@hiremate.lk" className="text-gray-400 hover:text-white transition-colors">
-              <FiMail className="h-6 w-6" />
-            </a>
-          </div>
         </div>
       </div>
     </footer>

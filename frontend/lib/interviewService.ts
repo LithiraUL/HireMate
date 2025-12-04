@@ -9,12 +9,12 @@ export const interviewService = {
     meetingLink?: string;
   }): Promise<Interview> {
     const response = await api.post('/interviews', data);
-    return response.data;
+    return response.data.interview || response.data;
   },
 
   async getMyInterviews(): Promise<Interview[]> {
-    const response = await api.get('/interviews/my-interviews');
-    return response.data;
+    const response = await api.get('/interviews/candidate');
+    return response.data.interviews || response.data;
   },
 
   async updateInterviewStatus(
@@ -22,6 +22,6 @@ export const interviewService = {
     status: 'confirmed' | 'declined'
   ): Promise<Interview> {
     const response = await api.put(`/interviews/${interviewId}`, { status });
-    return response.data;
+    return response.data.interview || response.data;
   },
 };

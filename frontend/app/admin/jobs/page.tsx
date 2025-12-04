@@ -17,7 +17,7 @@ export default function ManageJobs() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'open' | 'closed' | 'on-hold'>('all');
   const [jobTypeFilter, setJobTypeFilter] = useState<'all' | 'full-time' | 'part-time' | 'contract'>('all');
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -58,7 +58,7 @@ export default function ManageJobs() {
         job.requiredSkills.some(skill => 
           skill.toLowerCase().includes(searchTerm.toLowerCase())
         ) ||
-        (job.postedBy.companyName && 
+        (job.postedBy?.companyName && 
           job.postedBy.companyName.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
@@ -132,8 +132,9 @@ export default function ManageJobs() {
                 className="input-field w-full"
               >
                 <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="open">Open</option>
+                <option value="closed">Closed</option>
+                <option value="on-hold">On Hold</option>
               </select>
             </div>
 
@@ -144,8 +145,8 @@ export default function ManageJobs() {
                 className="input-field w-full"
               >
                 <option value="all">All Types</option>
-                <option value="full-time">Full-time</option>
-                <option value="part-time">Part-time</option>
+                <option value="full-time">Full-Time</option>
+                <option value="part-time">Part-Time</option>
                 <option value="contract">Contract</option>
               </select>
             </div>
@@ -170,13 +171,13 @@ export default function ManageJobs() {
                   <button
                     onClick={() => handleToggleStatus(job._id)}
                     className={`p-2 rounded-full ${
-                      job.status === 'active'
+                      job.status === 'open'
                         ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
                         : 'bg-green-100 text-green-600 hover:bg-green-200'
                     }`}
-                    title={job.status === 'active' ? 'Deactivate' : 'Activate'}
+                    title={job.status === 'open' ? 'Close Job' : 'Open Job'}
                   >
-                    {job.status === 'active' ? <FiXCircle /> : <FiCheckCircle />}
+                    {job.status === 'open' ? <FiXCircle /> : <FiCheckCircle />}
                   </button>
                 </div>
 

@@ -85,7 +85,7 @@ export default function CandidateJobs() {
 
     setApplying(true);
     try {
-      await applicationService.applyForJob(selectedJob.jobId);
+      await applicationService.applyForJob(selectedJob._id);
       alert('Application submitted successfully!');
       setSelectedJob(null);
     } catch (error: any) {
@@ -221,7 +221,14 @@ export default function CandidateJobs() {
                 {selectedJob.salaryRange && (
                   <div>
                     <span className="font-semibold">Salary:</span>
-                    <span className="ml-2">{selectedJob.salaryRange}</span>
+                    <span className="ml-2">
+                      {typeof selectedJob.salaryRange === 'string' 
+                        ? selectedJob.salaryRange 
+                        : selectedJob.salaryRange.min && selectedJob.salaryRange.max
+                          ? `${selectedJob.salaryRange.min} - ${selectedJob.salaryRange.max}`
+                          : 'Negotiable'
+                      }
+                    </span>
                   </div>
                 )}
               </div>

@@ -74,7 +74,14 @@ const JobCard: React.FC<JobCardProps> = ({
         {job.salaryRange && (
           <div className="flex items-center">
             <FiDollarSign className="mr-2" />
-            <span>{job.salaryRange}</span>
+            <span>
+              {typeof job.salaryRange === 'string' 
+                ? job.salaryRange 
+                : job.salaryRange.min && job.salaryRange.max
+                  ? `${job.salaryRange.min} - ${job.salaryRange.max}`
+                  : 'Negotiable'
+              }
+            </span>
           </div>
         )}
       </div>

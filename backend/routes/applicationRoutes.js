@@ -22,8 +22,8 @@ router.post('/', protect, authorize('candidate'), async (req, res) => {
 
     // Check if already applied
     const existingApplication = await Application.findOne({
-      jobId,
-      candidateId: req.user.id
+      job: jobId,
+      candidate: req.user.id
     });
 
     if (existingApplication) {
@@ -34,9 +34,8 @@ router.post('/', protect, authorize('candidate'), async (req, res) => {
     }
 
     const application = await Application.create({
-      jobId,
-      candidateId: req.user.id,
-      employerId: job.employerId
+      job: jobId,
+      candidate: req.user.id
     });
 
     // Update job applications count
@@ -63,9 +62,8 @@ router.post('/', protect, authorize('candidate'), async (req, res) => {
 // @access  Private (Candidate only)
 router.get('/candidate/my-applications', protect, authorize('candidate'), async (req, res) => {
   try {
-    const applications = await Application.find({ candidateId: req.user.id })
-      .populate('jobId', 'title description employmentType workMode salaryRange location status')
-      .populate('employerId', 'companyName contactNo')
+    const applications = await Application.find({ candidate: req.user.id })
+      .populate('job', 'title description employmentType workMode salaryRange location status')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -78,6 +76,113 @@ router.get('/candidate/my-applications', protect, authorize('candidate'), async 
     res.status(500).json({
       success: false,
       message: 'Error fetching applications'
+    });
+  }
+});
+
+// @route   GET /api/applications/employer/applicants
+// @desc    Get all unique candidates who applied to employer's jobs
+// @access  Private (Employer only)
+router.get('/employer/applicants', protect, authorize('employer'), async (req, res) => {
+  try {
+    const { status, skills, minAge, maxAge, employmentType, workMode } = req.query;
+
+    // Get all jobs posted by this employer
+    const employerJobs = await Job.find({ employer: req.user.id }).select('_id');
+    const jobIds = employerJobs.map(job => job._id);
+
+    if (jobIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        applicants: []
+      });
+    }
+
+    // Build application filter
+    const appFilter = { job: { $in: jobIds } };
+    if (status) {
+      appFilter.status = status;
+    }
+
+    // Get all applications for employer's jobs
+    const applications = await Application.find(appFilter)
+      .populate({
+        path: 'candidate',
+        select: 'name email age skills cvUrl githubUrl linkedinUrl jobPreferences'
+      })
+      .populate('job', 'title')
+      .sort({ createdAt: -1 });
+
+    // Extract unique candidates with their application info
+    const candidateMap = new Map();
+    
+    applications.forEach(app => {
+      if (app.candidate) {
+        const candidateId = app.candidate._id.toString();
+        if (!candidateMap.has(candidateId)) {
+          candidateMap.set(candidateId, {
+            ...app.candidate.toObject(),
+            applications: [],
+            latestApplicationStatus: app.status,
+            latestApplicationDate: app.createdAt
+          });
+        }
+        candidateMap.get(candidateId).applications.push({
+          _id: app._id,
+          job: app.job,
+          status: app.status,
+          appliedAt: app.createdAt
+        });
+      }
+    });
+
+    let applicants = Array.from(candidateMap.values());
+
+    // Apply additional filters
+    if (skills) {
+      const skillsArray = skills.split(',').map(s => s.trim());
+      applicants = applicants.filter(candidate => 
+        candidate.skills && candidate.skills.some(skill => 
+          skillsArray.some(filterSkill => 
+            skill.toLowerCase().includes(filterSkill.toLowerCase())
+          )
+        )
+      );
+    }
+
+    if (minAge) {
+      applicants = applicants.filter(c => c.age && c.age >= parseInt(minAge));
+    }
+
+    if (maxAge) {
+      applicants = applicants.filter(c => c.age && c.age <= parseInt(maxAge));
+    }
+
+    if (employmentType) {
+      applicants = applicants.filter(c => 
+        c.jobPreferences?.employmentType === employmentType ||
+        c.jobPreferences?.employmentType === 'both'
+      );
+    }
+
+    if (workMode) {
+      applicants = applicants.filter(c => 
+        c.jobPreferences?.workMode === workMode ||
+        c.jobPreferences?.workMode === 'any'
+      );
+    }
+
+    res.status(200).json({
+      success: true,
+      count: applicants.length,
+      applicants
+    });
+  } catch (error) {
+    console.error('Get applicants error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching applicants'
     });
   }
 });
@@ -97,15 +202,15 @@ router.get('/job/:jobId', protect, authorize('employer'), async (req, res) => {
     }
 
     // Check if user is the job owner
-    if (job.employerId.toString() !== req.user.id) {
+    if (job.employer.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to view these applications'
       });
     }
 
-    const applications = await Application.find({ jobId: req.params.jobId })
-      .populate('candidateId', 'name email age skills cvUrl githubUrl linkedinUrl jobPreferences')
+    const applications = await Application.find({ job: req.params.jobId })
+      .populate('candidate', 'name email age skills cvUrl githubUrl linkedinUrl jobPreferences')
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -129,7 +234,8 @@ router.put('/:id/status', protect, authorize('employer'), async (req, res) => {
   try {
     const { status } = req.body;
 
-    const application = await Application.findById(req.params.id);
+    const application = await Application.findById(req.params.id)
+      .populate('job', 'employer');
 
     if (!application) {
       return res.status(404).json({
@@ -138,8 +244,8 @@ router.put('/:id/status', protect, authorize('employer'), async (req, res) => {
       });
     }
 
-    // Check if user is the employer
-    if (application.employerId.toString() !== req.user.id) {
+    // Check if user is the employer who owns the job
+    if (application.job.employer.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this application'
@@ -169,9 +275,8 @@ router.put('/:id/status', protect, authorize('employer'), async (req, res) => {
 router.get('/:id', protect, async (req, res) => {
   try {
     const application = await Application.findById(req.params.id)
-      .populate('jobId')
-      .populate('candidateId', 'name email age skills cvUrl githubUrl linkedinUrl jobPreferences')
-      .populate('employerId', 'companyName companyAddress contactNo');
+      .populate('job')
+      .populate('candidate', 'name email age skills cvUrl githubUrl linkedinUrl jobPreferences');
 
     if (!application) {
       return res.status(404).json({
@@ -181,8 +286,8 @@ router.get('/:id', protect, async (req, res) => {
     }
 
     // Check authorization
-    const isCandidate = req.user.id === application.candidateId._id.toString();
-    const isEmployer = req.user.id === application.employerId._id.toString();
+    const isCandidate = req.user.id === application.candidate._id.toString();
+    const isEmployer = application.job.employer && req.user.id === application.job.employer.toString();
 
     if (!isCandidate && !isEmployer) {
       return res.status(403).json({

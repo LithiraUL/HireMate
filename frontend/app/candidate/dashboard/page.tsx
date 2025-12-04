@@ -131,7 +131,7 @@ export default function CandidateDashboard() {
             <h3 className="text-lg font-semibold mb-4">Recent Applications</h3>
             <div className="space-y-3">
               {applications.slice(0, 3).map((app) => (
-                <div key={app.applicationId} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                <div key={app._id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">{app.job?.title}</p>
                     <p className="text-sm text-gray-600">{app.job?.employer?.companyName}</p>
@@ -171,7 +171,7 @@ export default function CandidateDashboard() {
               {interviews
                 .filter((i) => i.status === 'scheduled' || i.status === 'confirmed')
                 .map((interview) => (
-                  <div key={interview.interviewId} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                  <div key={interview._id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                     <div className="flex items-center">
                       <FiCalendar className="text-primary-600 mr-3 h-5 w-5" />
                       <div>

@@ -53,13 +53,13 @@ export default function EmployerJobs() {
 
   const handleViewJob = async (job: Job) => {
     setSelectedJob(job);
-    await loadApplications(job.jobId);
+    await loadApplications(job._id);
   };
 
   const handleDeleteJob = async (jobId: string) => {
     try {
       await jobService.deleteJob(jobId);
-      setJobs(jobs.filter((j) => j.jobId !== jobId));
+      setJobs(jobs.filter((j) => j._id !== jobId));
       setShowDeleteConfirm(null);
       alert('Job deleted successfully!');
     } catch (error) {
@@ -73,7 +73,7 @@ export default function EmployerJobs() {
       await applicationService.updateApplicationStatus(applicationId, status);
       // Reload applications
       if (selectedJob) {
-        await loadApplications(selectedJob.jobId);
+        await loadApplications(selectedJob._id);
       }
       alert('Application status updated!');
     } catch (error) {
@@ -112,12 +112,12 @@ export default function EmployerJobs() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
               <JobCard
-                key={job.jobId}
+                key={job._id}
                 job={job}
                 onClick={() => handleViewJob(job)}
                 showActions
-                onEdit={() => router.push(`/employer/edit-job/${job.jobId}`)}
-                onDelete={() => setShowDeleteConfirm(job.jobId)}
+                onEdit={() => router.push(`/employer/edit-job/${job._id}`)}
+                onDelete={() => setShowDeleteConfirm(job._id)}
               />
             ))}
           </div>
@@ -189,7 +189,7 @@ export default function EmployerJobs() {
                   <div className="space-y-3 max-h-96 overflow-y-auto">
                     {applications.map((app) => (
                       <div
-                        key={app.applicationId}
+                        key={app._id}
                         className="border border-gray-200 rounded-lg p-4"
                       >
                         <div className="flex justify-between items-start mb-2">
@@ -239,7 +239,7 @@ export default function EmployerJobs() {
                           )}
                           {app.status === 'pending' && (
                             <button
-                              onClick={() => handleUpdateStatus(app.applicationId, 'reviewed')}
+                              onClick={() => handleUpdateStatus(app._id, 'reviewed')}
                               className="text-xs btn-primary py-1 px-3"
                             >
                               Mark Reviewed
@@ -247,7 +247,7 @@ export default function EmployerJobs() {
                           )}
                           {app.status === 'reviewed' && (
                             <button
-                              onClick={() => handleUpdateStatus(app.applicationId, 'shortlisted')}
+                              onClick={() => handleUpdateStatus(app._id, 'shortlisted')}
                               className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
                             >
                               Shortlist
@@ -255,7 +255,7 @@ export default function EmployerJobs() {
                           )}
                           {app.status !== 'rejected' && (
                             <button
-                              onClick={() => handleUpdateStatus(app.applicationId, 'rejected')}
+                              onClick={() => handleUpdateStatus(app._id, 'rejected')}
                               className="text-xs btn-danger py-1 px-3"
                             >
                               Reject

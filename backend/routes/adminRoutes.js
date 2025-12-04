@@ -16,7 +16,7 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
     const totalEmployers = await User.countDocuments({ role: 'employer' });
     
     const totalJobs = await Job.countDocuments();
-    const activeJobs = await Job.countDocuments({ status: 'active' });
+    const activeJobs = await Job.countDocuments({ status: 'open' });
     
     const totalApplications = await Application.countDocuments();
     const pendingApplications = await Application.countDocuments({ status: 'pending' });
@@ -65,10 +65,10 @@ router.get('/activity', protect, adminOnly, async (req, res) => {
     
     // Get recent jobs
     const recentJobs = await Job.find()
-      .sort({ postedAt: -1 })
+      .sort({ createdAt: -1 })
       .limit(5)
-      .populate('postedBy', 'name companyName')
-      .select('title postedAt postedBy');
+      .populate('employer', 'name companyName')
+      .select('title createdAt employer');
     
     // Get recent applications
     const recentApplications = await Application.find()
@@ -103,28 +103,32 @@ router.get('/activity', protect, adminOnly, async (req, res) => {
         id: `job-${job._id}`,
         type: 'job_posted',
         message: `New job posted: ${job.title}`,
-        timestamp: job.postedAt,
-        user: job.postedBy.companyName || job.postedBy.name
+        timestamp: job.createdAt,
+        user: job.employer?.companyName || job.employer?.name || 'Unknown'
       });
     });
     
     recentApplications.forEach(app => {
-      activities.push({
-        id: `app-${app._id}`,
-        type: 'application_submitted',
-        message: `Application submitted for ${app.job.title}`,
-        timestamp: app.appliedAt,
-        user: app.candidate.name
-      });
+      if (app.job && app.candidate) {
+        activities.push({
+          id: `app-${app._id}`,
+          type: 'application_submitted',
+          message: `Application submitted for ${app.job.title}`,
+          timestamp: app.appliedAt,
+          user: app.candidate.name
+        });
+      }
     });
     
     recentInterviews.forEach(interview => {
-      activities.push({
-        id: `interview-${interview._id}`,
-        type: 'interview_scheduled',
-        message: `Interview scheduled for ${interview.job.title}`,
-        timestamp: interview.createdAt
-      });
+      if (interview.job) {
+        activities.push({
+          id: `interview-${interview._id}`,
+          type: 'interview_scheduled',
+          message: `Interview scheduled for ${interview.job.title}`,
+          timestamp: interview.createdAt
+        });
+      }
     });
 
     // Sort by timestamp and limit
@@ -312,8 +316,8 @@ router.delete('/users/:id', protect, adminOnly, async (req, res) => {
 router.get('/jobs', protect, adminOnly, async (req, res) => {
   try {
     const jobs = await Job.find()
-      .populate('postedBy', 'name email companyName')
-      .sort({ postedAt: -1 });
+      .populate('employer', 'name email companyName')
+      .sort({ createdAt: -1 });
     
     // Add applications count
     const jobsWithCount = await Promise.all(
@@ -354,12 +358,12 @@ router.put('/jobs/:id/toggle-status', protect, adminOnly, async (req, res) => {
       });
     }
     
-    job.status = job.status === 'active' ? 'inactive' : 'active';
+    job.status = job.status === 'open' ? 'closed' : 'open';
     await job.save();
     
     res.status(200).json({
       success: true,
-      message: `Job ${job.status === 'active' ? 'activated' : 'deactivated'} successfully`,
+      message: `Job ${job.status === 'open' ? 'opened' : 'closed'} successfully`,
       data: job
     });
   } catch (error) {
@@ -460,6 +464,31 @@ router.get('/health', protect, adminOnly, async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'System health check failed',
+      error: error.message
+    });
+  }
+});
+
+// @desc    Get system logs
+// @route   GET /api/admin/logs
+// @access  Private/Admin
+router.get('/logs', protect, adminOnly, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    
+    // For now, return empty logs array
+    // In production, you would query a Log model or read from log files
+    const logs = [];
+    
+    res.status(200).json({
+      success: true,
+      count: logs.length,
+      data: logs
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch logs',
       error: error.message
     });
   }

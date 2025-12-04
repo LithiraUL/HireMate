@@ -40,6 +40,7 @@ const Navbar: React.FC = () => {
   const adminLinks = [
     { name: 'Dashboard', path: '/admin/dashboard' },
     { name: 'Manage Users', path: '/admin/users' },
+    { name: 'Manage Jobs', path: '/admin/jobs' },
     { name: 'System Logs', path: '/admin/logs' },
   ];
 

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { candidateService } from '@/lib/candidateService';
+import { applicationService } from '@/lib/applicationService';
 import { Candidate, FilterCriteria } from '@/types';
 import Loading from '@/components/Loading';
 import CandidateCard from '@/components/CandidateCard';
@@ -39,7 +39,13 @@ export default function EmployerCandidates() {
 
   const loadCandidates = async () => {
     try {
-      const data = await candidateService.getAllCandidates();
+      const data = await applicationService.getApplicants({
+        skills: searchTerm || undefined,
+        minAge: filters.ageMin,
+        maxAge: filters.ageMax,
+        employmentType: filters.employmentType,
+        workMode: filters.workMode,
+      });
       setCandidates(data);
       setFilteredCandidates(data);
     } catch (error) {
@@ -56,10 +62,10 @@ export default function EmployerCandidates() {
     if (searchTerm) {
       filtered = filtered.filter(
         (candidate) =>
-          candidate.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          candidate.skills.some((skill) =>
+          candidate.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (candidate.skills && candidate.skills.some((skill) =>
             skill.toLowerCase().includes(searchTerm.toLowerCase())
-          )
+          ))
       );
     }
 
@@ -75,8 +81,8 @@ export default function EmployerCandidates() {
     if (filters.employmentType && filters.employmentType !== 'both') {
       filtered = filtered.filter(
         (c) =>
-          c.jobPreferences.employmentType === filters.employmentType ||
-          c.jobPreferences.employmentType === 'both'
+          c.jobPreferences?.employmentType === filters.employmentType ||
+          c.jobPreferences?.employmentType === 'both'
       );
     }
 
@@ -84,8 +90,8 @@ export default function EmployerCandidates() {
     if (filters.workMode && filters.workMode !== 'any') {
       filtered = filtered.filter(
         (c) =>
-          c.jobPreferences.workMode === filters.workMode ||
-          c.jobPreferences.workMode === 'any'
+          c.jobPreferences?.workMode === filters.workMode ||
+          c.jobPreferences?.workMode === 'any'
       );
     }
 
@@ -93,8 +99,10 @@ export default function EmployerCandidates() {
   };
 
   useEffect(() => {
-    applyFilters();
-  }, [searchTerm, filters, candidates]);
+    if (user) {
+      loadCandidates();
+    }
+  }, [user, searchTerm, filters]);
 
   if (authLoading || loading) {
     return <Loading fullScreen />;
@@ -109,8 +117,8 @@ export default function EmployerCandidates() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Find Candidates</h1>
-          <p className="text-gray-600 mt-2">Search and filter qualified candidates</p>
+          <h1 className="text-3xl font-bold text-gray-900">Applicants</h1>
+          <p className="text-gray-600 mt-2">View and filter candidates who applied to your jobs</p>
         </div>
 
         {/* Search and Filters */}
@@ -119,13 +127,13 @@ export default function EmployerCandidates() {
             {/* Search */}
             <div>
               <div className="relative">
-                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
                   type="text"
                   placeholder="Search by name or skills..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="input-field pl-10"
+                  className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -211,7 +219,7 @@ export default function EmployerCandidates() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCandidates.map((candidate) => (
               <CandidateCard
-                key={candidate.userId}
+                key={candidate._id}
                 candidate={candidate}
                 onClick={() => setSelectedCandidate(candidate)}
                 showActions

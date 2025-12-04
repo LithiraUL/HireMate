@@ -126,7 +126,7 @@ export default function CandidateApplications() {
                   </div>
                 </div>
 
-                {application.job && (
+                {application.job && application.job.requiredSkills && application.job.requiredSkills.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <div className="flex flex-wrap gap-2">
                       {application.job.requiredSkills.slice(0, 5).map((skill, index) => (
@@ -197,11 +197,15 @@ export default function CandidateApplications() {
               <div>
                 <h4 className="font-semibold mb-2">Required Skills</h4>
                 <div className="flex flex-wrap gap-2">
-                  {selectedApp.job.requiredSkills.map((skill, index) => (
-                    <span key={index} className="badge badge-info">
-                      {skill}
-                    </span>
-                  ))}
+                  {selectedApp.job.requiredSkills && selectedApp.job.requiredSkills.length > 0 ? (
+                    selectedApp.job.requiredSkills.map((skill, index) => (
+                      <span key={index} className="badge badge-info">
+                        {skill}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-gray-500">No skills specified</span>
+                  )}
                 </div>
               </div>
 

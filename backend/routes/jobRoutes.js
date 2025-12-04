@@ -13,6 +13,7 @@ router.post('/', protect, authorize('employer'), async (req, res) => {
       description,
       requiredSkills,
       experienceRequired,
+      jobType,
       employmentType,
       workMode,
       salaryRange,
@@ -21,12 +22,13 @@ router.post('/', protect, authorize('employer'), async (req, res) => {
     } = req.body;
 
     const job = await Job.create({
-      employerId: req.user.id,
+      employer: req.user.id,
+      companyName: req.user.companyName,
       title,
       description,
       requiredSkills,
       experienceRequired,
-      employmentType,
+      employmentType: employmentType || jobType,
       workMode,
       salaryRange,
       location,
@@ -85,7 +87,7 @@ router.get('/', async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const jobs = await Job.find(filter)
-      .populate('employerId', 'companyName companyAddress contactNo')
+      .populate('employer', 'companyName companyAddress contactNo')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -109,13 +111,35 @@ router.get('/', async (req, res) => {
   }
 });
 
+// @route   GET /api/jobs/employer/my-jobs
+// @desc    Get all jobs posted by the logged-in employer
+// @access  Private (Employer only)
+router.get('/employer/my-jobs', protect, authorize('employer'), async (req, res) => {
+  try {
+    const jobs = await Job.find({ employer: req.user.id })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: jobs.length,
+      jobs
+    });
+  } catch (error) {
+    console.error('Get employer jobs error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching jobs'
+    });
+  }
+});
+
 // @route   GET /api/jobs/:id
 // @desc    Get single job by ID
 // @access  Public
 router.get('/:id', async (req, res) => {
   try {
     const job = await Job.findById(req.params.id)
-      .populate('employerId', 'companyName companyAddress contactNo email');
+      .populate('employer', 'companyName companyAddress contactNo email');
 
     if (!job) {
       return res.status(404).json({
@@ -152,7 +176,7 @@ router.put('/:id', protect, authorize('employer'), async (req, res) => {
     }
 
     // Check if user is the job owner
-    if (job.employerId.toString() !== req.user.id) {
+    if (job.employer.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to update this job'
@@ -193,7 +217,7 @@ router.delete('/:id', protect, authorize('employer'), async (req, res) => {
     }
 
     // Check if user is the job owner
-    if (job.employerId.toString() !== req.user.id) {
+    if (job.employer.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to delete this job'
@@ -211,28 +235,6 @@ router.delete('/:id', protect, authorize('employer'), async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting job'
-    });
-  }
-});
-
-// @route   GET /api/jobs/employer/my-jobs
-// @desc    Get all jobs posted by the logged-in employer
-// @access  Private (Employer only)
-router.get('/employer/my-jobs', protect, authorize('employer'), async (req, res) => {
-  try {
-    const jobs = await Job.find({ employerId: req.user.id })
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: jobs.length,
-      jobs
-    });
-  } catch (error) {
-    console.error('Get employer jobs error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching jobs'
     });
   }
 });

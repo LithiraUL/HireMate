@@ -36,9 +36,7 @@ npm install
 1. Download from https://www.mongodb.com/try/download/community
 2. Install and start MongoDB service
 3. Keep default `.env` setting:
-   ```
-   MONGODB_URI=mongodb://localhost:27017/hiremate
-   ```
+   
 
 ### 3. Generate JWT Secret
 
@@ -94,17 +92,17 @@ EMAIL_PASSWORD=abcd efgh ijkl mnop  (16 chars from Google)
 Your `.env` should look like this (with real values):
 
 ```env
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/hiremate
-JWT_SECRET=aB3xK9mP2nQ8rT5vY7wZ1cD4eF6gH0iJ
-JWT_EXPIRE=30d
-PORT=5000
+MONGODB_URI=
+JWT_SECRET=
+JWT_EXPIRE=
+PORT=
 NODE_ENV=development
 FRONTEND_URL=http://localhost:3001
 CLOUDINARY_CLOUD_NAME=dxxxxxxxx
-CLOUDINARY_API_KEY=123456789012345
-CLOUDINARY_API_SECRET=abcdefghijk-lmnopqr
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
 EMAIL_USER=youremail@gmail.com
-EMAIL_PASSWORD=abcd efgh ijkl mnop
+EMAIL_PASSWORD=
 ```
 
 ### 7. Start the Backend Server
