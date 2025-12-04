@@ -145,4 +145,12 @@ Frontend runs on: **http://localhost:3001**
 
 ---
 
+## 📜 License
+
+Copyright © 2025 Lithira Liyanaunawardhana - University of Moratuwa. All Rights Reserved.
+
+This project is proprietary software developed for academic purposes. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited. See the [LICENSE](./LICENSE) file for details.
+
+---
+
 **Built with ❤️ for efficient recruitment management**
