@@ -28,7 +28,7 @@ npm install
 5. Copy the connection string
 6. Open `.env` file and replace:
    ```
-   MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/hiremate?retryWrites=true&w=majority
+   
    ```
 
 #### Option B: Local MongoDB
@@ -37,7 +37,7 @@ npm install
 2. Install and start MongoDB service
 3. Keep default `.env` setting:
    ```
-   MONGODB_URI=mongodb://localhost:27017/hiremate
+   
    ```
 
 ### 3. Generate JWT Secret
@@ -51,7 +51,7 @@ Generate a secure random string:
 
 Update in `.env`:
 ```
-JWT_SECRET=<paste_generated_string_here>
+
 ```
 
 ### 4. Setup Cloudinary
