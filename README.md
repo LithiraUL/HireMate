@@ -165,7 +165,7 @@ Frontend runs on: **http://localhost:3001**
 - **Application Layer**: Express.js (Auth, Job, Application, Interview, Admin services)
 - **Database Layer**: MongoDB (User, Job, Application, Interview collections)
 
-**📖 See [SYSTEM_COMPLETE.md](./SYSTEM_COMPLETE.md) for complete architecture details**
+
 
 ---
 
@@ -202,7 +202,7 @@ Frontend runs on: **http://localhost:3001**
 
 ## 📖 Documentation
 
-- **[SYSTEM_COMPLETE.md](./SYSTEM_COMPLETE.md)** - Complete system documentation
+
 - **[frontend/README.md](./frontend/README.md)** - Frontend guide
 - **[backend/README.md](./backend/README.md)** - API documentation
 
