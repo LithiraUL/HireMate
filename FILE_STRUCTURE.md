@@ -1,28 +1,53 @@
 # HireMate - Complete File Structure
 
+**Last Updated**: January 2025  
+**Status**: Phase 1 Complete (100%)
+
 ```
 HireMate/
 │
-├── 📁 app/                                    # Next.js App Router
-│   ├── 📁 candidate/                         # Candidate Portal
-│   │   ├── 📁 applications/                  # Application tracking
-│   │   │   └── 📄 page.tsx                   # Applications list with status filters
-│   │   ├── 📁 dashboard/                     # Candidate home
-│   │   │   └── 📄 page.tsx                   # Statistics, quick actions, recent apps
-│   │   ├── 📁 jobs/                          # Job browsing
-│   │   │   └── 📄 page.tsx                   # Job search, filters, apply
-│   │   └── 📁 profile/                       # Profile management
-│   │       └── 📄 page.tsx                   # Edit profile, CV upload, skills
-│   │
-│   ├── 📁 employer/                          # Employer Portal
-│   │   ├── 📁 candidates/                    # Candidate discovery
-│   │   │   └── 📄 page.tsx                   # Search, filter, view candidates
-│   │   ├── 📁 dashboard/                     # Employer home
-│   │   │   └── 📄 page.tsx                   # Metrics, recent jobs, applications
-│   │   ├── 📁 jobs/                          # Job management
-│   │   │   └── 📄 page.tsx                   # View jobs, applications, update status
-│   │   └── 📁 post-job/                      # Create job posting
-│   │       └── 📄 page.tsx                   # Job form with skills management
+├── 📁 frontend/                              # Next.js Frontend Application
+│   ├── 📁 app/                               # Next.js App Router
+│   │   ├── 📁 candidate/                     # Candidate Portal
+│   │   │   ├── 📁 applications/              # Application tracking
+│   │   │   │   └── 📄 page.tsx               # Applications list with status filters
+│   │   │   ├── 📁 dashboard/                 # Candidate home
+│   │   │   │   └── 📄 page.tsx               # Stats, quick actions, interviews display
+│   │   │   ├── 📁 jobs/                      # Job browsing
+│   │   │   │   └── 📄 page.tsx               # Job search, filters, apply
+│   │   │   └── 📁 profile/                   # Profile management
+│   │   │       └── 📄 page.tsx               # Edit profile, CV upload, skills
+│   │   │
+│   │   ├── 📁 employer/                      # Employer Portal
+│   │   │   ├── 📁 analytics/                 # 🆕 Analytics Dashboard
+│   │   │   │   └── 📄 page.tsx               # Hiring trends, time-to-hire, demographics
+│   │   │   ├── 📁 candidates/                # Candidate discovery
+│   │   │   │   └── 📄 page.tsx               # Search, filter, view candidates
+│   │   │   ├── 📁 dashboard/                 # Employer home
+│   │   │   │   └── 📄 page.tsx               # Metrics, recent jobs, applications
+│   │   │   ├── 📁 jobs/                      # Job management
+│   │   │   │   └── 📄 page.tsx               # View jobs, apps, schedule interviews
+│   │   │   └── 📁 post-job/                  # Create job posting
+│   │   │       └── 📄 page.tsx               # Job form with skills management
+│   │   │
+│   │   ├── 📁 admin/                         # Admin Portal
+│   │   │   ├── 📁 dashboard/                 # Admin home
+│   │   │   │   └── 📄 page.tsx               # System statistics and activity
+│   │   │   ├── 📁 users/                     # User management
+│   │   │   │   └── 📄 page.tsx               # CRUD operations for users
+│   │   │   ├── 📁 jobs/                      # Job management
+│   │   │   │   └── 📄 page.tsx               # View and manage all jobs
+│   │   │   └── 📁 logs/                      # System logs
+│   │   │       └── 📄 page.tsx               # Activity monitoring
+│   │   │
+│   │   ├── 📁 about/                         # 🆕 About page
+│   │   │   └── 📄 page.tsx                   # Mission, vision, features
+│   │   ├── 📁 contact/                       # 🆕 Contact page
+│   │   │   └── 📄 page.tsx                   # Contact form with email backend
+│   │   ├── 📁 faq/                           # 🆕 FAQ page
+│   │   │   └── 📄 page.tsx                   # Frequently asked questions
+│   │   ├── 📁 privacy/                       # 🆕 Privacy Policy page
+│   │   │   └── 📄 page.tsx                   # Privacy policy and terms
 │   │
 │   ├── 📁 login/                             # Authentication
 │   │   └── 📄 page.tsx                       # Login form
@@ -45,9 +70,15 @@ HireMate/
 ├── 📁 context/                               # State Management
 │   └── 📄 AuthContext.tsx                    # Authentication context & hooks
 │
-├── 📁 lib/                                   # Services & Utilities
-│   ├── 📄 api.ts                             # Axios instance with interceptors
-│   ├── 📄 applicationService.ts              # Application API calls
+│   ├── 📁 lib/                               # Services & Utilities
+│   │   ├── 📄 api.ts                         # Axios instance with interceptors
+│   │   ├── 📄 adminService.ts                # Admin API calls
+│   │   ├── 📄 analyticsService.ts            # 🆕 Analytics API calls
+│   │   ├── 📄 applicationService.ts          # Application API calls
+│   │   ├── 📄 authService.ts                 # Authentication API calls
+│   │   ├── 📄 interviewService.ts            # Interview API calls
+│   │   ├── 📄 jobService.ts                  # Job posting API calls
+│   │   └── 📄 userService.ts                 # User profile API calls
 │   ├── 📄 authService.ts                     # Authentication API calls
 │   ├── 📄 candidateService.ts                # Candidate API calls
 │   ├── 📄 interviewService.ts                # Interview API calls

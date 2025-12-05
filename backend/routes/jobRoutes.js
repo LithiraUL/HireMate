@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Job = require('../models/Job');
+const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
+const { sendEmail, jobInvitationEmail } = require('../config/nodemailer');
 
 // @route   POST /api/jobs
 // @desc    Create a new job posting
@@ -235,6 +237,83 @@ router.delete('/:id', protect, authorize('employer'), async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error deleting job'
+    });
+  }
+});
+
+// @route   POST /api/jobs/:jobId/invite
+// @desc    Send job invitation to a candidate
+// @access  Private (Employer only)
+router.post('/:jobId/invite', protect, authorize('employer'), async (req, res) => {
+  try {
+    const { candidateId, positionTitle, message } = req.body;
+
+    if (!candidateId || !positionTitle) {
+      return res.status(400).json({
+        success: false,
+        message: 'Candidate ID and position title are required'
+      });
+    }
+
+    // Get job details
+    const job = await Job.findById(req.params.jobId);
+    if (!job) {
+      return res.status(404).json({
+        success: false,
+        message: 'Job not found'
+      });
+    }
+
+    // Verify employer owns the job
+    if (job.employer.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to send invitations for this job'
+      });
+    }
+
+    // Get candidate details
+    const candidate = await User.findById(candidateId);
+    if (!candidate || candidate.role !== 'candidate') {
+      return res.status(404).json({
+        success: false,
+        message: 'Candidate not found'
+      });
+    }
+
+    // Get employer details
+    const employer = await User.findById(req.user.id);
+
+    // Prepare email content with specific job link
+    const jobDetails = {
+      title: positionTitle,
+      message: message || '',
+      applicationLink: `${process.env.FRONTEND_URL}/candidate/jobs?highlight=${job._id}`
+    };
+
+    const emailHtml = jobInvitationEmail(
+      candidate.name,
+      employer.name,
+      employer.companyName,
+      jobDetails
+    );
+
+    // Send email
+    await sendEmail({
+      to: candidate.email,
+      subject: `${employer.companyName} invites you to apply: ${positionTitle}`,
+      html: emailHtml
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Invitation sent successfully'
+    });
+  } catch (error) {
+    console.error('Send invitation error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error sending invitation'
     });
   }
 });

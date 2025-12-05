@@ -28,23 +28,27 @@ RESTful API for the HireMate recruitment management system built with Node.js, E
 ```
 backend/
  models/
-    User.js           # User schema (candidates & employers)
-    Job.js            # Job posting schema
-    Application.js    # Application schema
+    User.js           # User schema (candidates, employers, admins)
+    Job.js            # Job posting schema with salary range
+    Application.js    # Application schema with status tracking
     Interview.js      # Interview scheduling schema
  routes/
-    authRoutes.js     # Authentication endpoints
-    userRoutes.js     # User profile & CV upload
-    jobRoutes.js      # Job CRUD operations
-    applicationRoutes.js  # Application management
-    interviewRoutes.js    # Interview scheduling
+    authRoutes.js     # Authentication endpoints (register, login)
+    userRoutes.js     # User profile, CV upload, candidate search
+    jobRoutes.js      # Job CRUD operations & job invitations
+    applicationRoutes.js  # Application management & status updates
+    interviewRoutes.js    # Interview scheduling & confirmations
+    analyticsRoutes.js    # Hiring analytics & metrics
+    adminRoutes.js    # Admin operations (users, jobs, stats, logs)
  middleware/
-    auth.js           # JWT protection & authorization
+    auth.js           # JWT protection & role-based authorization
  config/
-    cloudinary.js     # Cloudinary configuration
-    nodemailer.js     # Email service & templates
+    db.js             # MongoDB connection
+    cloudinary.js     # Cloudinary configuration (deprecated - moved to server.js)
+    nodemailer.js     # Email service & HTML templates
  server.js             # Express app entry point
  .env                  # Environment variables
+ .env.example          # Example environment configuration
  package.json
 ```
 
@@ -152,9 +156,27 @@ Server will run on `http://localhost:5000`
 - `POST /api/interviews` - Schedule interview (employer only)
 - `GET /api/interviews/candidate` - Get candidate's interviews
 - `GET /api/interviews/employer` - Get employer's interviews
-- `PUT /api/interviews/:id/status` - Update interview status
+- `PUT /api/interviews/:id/status` - Update interview status (confirm/decline)
 - `GET /api/interviews/:id` - Get interview details
 - `DELETE /api/interviews/:id` - Cancel interview (employer only)
+
+### Analytics (Employer/Admin)
+- `GET /api/analytics/hiring-trends?period=6months` - Get hiring trends over time
+- `GET /api/analytics/time-to-hire` - Get time-to-hire metrics
+- `GET /api/analytics/demographics` - Get applicant demographics
+
+### Admin
+- `GET /api/admin/stats` - Get system statistics
+- `GET /api/admin/activity` - Get recent activity
+- `GET /api/admin/users` - Get all users
+- `PUT /api/admin/users/:id` - Update user
+- `DELETE /api/admin/users/:id` - Delete user
+- `GET /api/admin/jobs` - Get all jobs
+- `DELETE /api/admin/jobs/:id` - Delete job
+- `GET /api/admin/logs` - Get system logs
+
+### Job Invitations
+- `POST /api/jobs/:jobId/invite` - Send job invitation to candidate (employer only)
 
 ## Testing the API
 

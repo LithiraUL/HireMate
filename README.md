@@ -15,12 +15,15 @@ HireMate is a comprehensive recruitment management system designed for Small and
 ### ✨ Key Features
 
 - 🔐 **Role-Based Authentication** (Candidate, Employer, Admin)
-- 📝 **Smart Job Posting & Browsing**
-- 📄 **CV Upload & Management** (Cloudinary)
-- 📧 **Automated Email Notifications** (NodeMailer)
-- 📊 **Comprehensive Admin Dashboard**
-- 📱 **Fully Responsive Design**
-- 🚀 **Real-Time Application Tracking**
+- 📝 **Smart Job Posting & Browsing** with advanced filtering
+- 📄 **CV Upload & Management** (Cloudinary integration)
+- 📧 **Automated Email Notifications** (NodeMailer with HTML templates)
+- 📊 **Analytics Dashboard** (Hiring trends, time-to-hire metrics)
+- 👥 **Talent Discovery** (Search & invite candidates directly)
+- 📅 **Interview Scheduling** (Confirm/decline functionality)
+- 📱 **Fully Responsive Design** (Mobile-first approach)
+- 🚀 **Real-Time Application Tracking** with status updates
+- 🎯 **Direct Job Invitations** (Email with specific job links)
 
 ---
 
@@ -28,23 +31,85 @@ HireMate is a comprehensive recruitment management system designed for Small and
 
 ```
 HireMate/
-├── frontend/                 # Next.js 14 frontend (✅ Complete)
-│   ├── app/                 # App router pages
-│   │   ├── candidate/      # Candidate portal (4 pages)
-│   │   ├── employer/       # Employer portal (4 pages)
-│   │   └── admin/          # Admin portal (4 pages) ⭐ NEW
-│   ├── components/         # Reusable components
-│   ├── lib/                # API services
-│   └── types/              # TypeScript definitions
+├── frontend/                    # Next.js 14 frontend (✅ Complete)
+│   ├── app/                    # App router pages
+│   │   ├── candidate/         # Candidate portal (4 pages)
+│   │   │   ├── dashboard/    # Application tracking & interviews
+│   │   │   ├── jobs/         # Browse & apply for jobs
+│   │   │   ├── applications/ # Application history
+│   │   │   └── profile/      # CV & profile management
+│   │   │
+│   │   ├── employer/          # Employer portal (5 pages)
+│   │   │   ├── dashboard/    # Overview & recent applications
+│   │   │   ├── jobs/         # Manage job postings & applicants
+│   │   │   ├── post-job/     # Create new job posting
+│   │   │   ├── candidates/   # Talent discovery & invitations
+│   │   │   └── analytics/    # Hiring trends & metrics
+│   │   │
+│   │   ├── admin/             # Admin portal (4 pages)
+│   │   │   ├── dashboard/    # System stats & activity
+│   │   │   ├── users/        # User management
+│   │   │   ├── jobs/         # Job moderation
+│   │   │   └── logs/         # System logs
+│   │   │
+│   │   ├── login/             # Authentication
+│   │   ├── register/          # User registration
+│   │   ├── about/             # About page
+│   │   ├── contact/           # Contact form
+│   │   ├── faq/               # FAQ page
+│   │   ├── privacy/           # Privacy policy
+│   │   └── page.tsx           # Landing page
+│   │
+│   ├── components/            # Reusable components
+│   │   ├── JobCard.tsx       # Job listing card
+│   │   ├── Modal.tsx         # Modal dialog
+│   │   ├── Loading.tsx       # Loading spinner
+│   │   └── Navbar.tsx        # Navigation bar
+│   │
+│   ├── context/               # React context
+│   │   └── AuthContext.tsx   # Authentication state
+│   │
+│   ├── lib/                   # API services
+│   │   ├── api.ts            # Axios instance
+│   │   ├── authService.ts    # Auth APIs
+│   │   ├── jobService.ts     # Job APIs
+│   │   ├── applicationService.ts
+│   │   ├── interviewService.ts
+│   │   ├── analyticsService.ts
+│   │   ├── adminService.ts
+│   │   └── userService.ts    # User search APIs
+│   │
+│   └── types/                 # TypeScript definitions
+│       └── index.ts          # Global type definitions
 │
-├── backend/                # Express.js backend (✅ Complete)
-│   ├── models/            # Mongoose schemas
-│   ├── routes/            # API endpoints
-│   ├── middleware/        # Auth & validation
-│   └── server.js          # Express server
+├── backend/                   # Express.js backend (✅ Complete)
+│   ├── models/               # Mongoose schemas
+│   │   ├── User.js          # User model (candidate/employer/admin)
+│   │   ├── Job.js           # Job posting model
+│   │   ├── Application.js   # Job application model
+│   │   └── Interview.js     # Interview scheduling model
+│   │
+│   ├── routes/               # API endpoints
+│   │   ├── authRoutes.js    # Auth & registration
+│   │   ├── userRoutes.js    # User profile & search
+│   │   ├── jobRoutes.js     # Job CRUD & invitations
+│   │   ├── applicationRoutes.js # Applications & status
+│   │   ├── interviewRoutes.js   # Interview scheduling
+│   │   ├── analyticsRoutes.js   # Hiring analytics
+│   │   └── adminRoutes.js   # Admin operations
+│   │
+│   ├── middleware/           # Express middleware
+│   │   └── auth.js          # JWT authentication & authorization
+│   │
+│   ├── config/               # Configuration
+│   │   ├── db.js            # MongoDB connection
+│   │   └── nodemailer.js    # Email templates & sender
+│   │
+│   ├── .env                  # Environment variables
+│   └── server.js            # Express server entry
 │
-├── SYSTEM_COMPLETE.md     # 📖 Full documentation
-└── README.md              # This file
+├── SYSTEM_COMPLETE.md        # 📖 Full documentation
+└── README.md                 # This file
 ```
 
 ---
@@ -87,9 +152,9 @@ Frontend runs on: **http://localhost:3001**
 
 | Role | Features |
 |------|----------|
-| **Candidate** | Browse jobs, apply, track applications, manage CV |
-| **Employer** | Post jobs, search candidates, review applications, schedule interviews |
-| **Admin** | User management, job moderation, system monitoring, logs |
+| **Candidate** | Browse jobs, apply with CV, track applications, manage interviews, update profile |
+| **Employer** | Post jobs, search candidates, send invitations, review applications, schedule interviews, view analytics |
+| **Admin** | User management, job moderation, system monitoring, activity logs, system statistics |
 
 ---
 
@@ -106,8 +171,10 @@ Frontend runs on: **http://localhost:3001**
 
 ## 🔧 Technology Stack
 
-**Frontend**: Next.js 14 • TypeScript • Tailwind CSS • Axios • React Hook Form  
-**Backend**: Node.js • Express • MongoDB • JWT • Cloudinary • NodeMailer  
+**Frontend**: Next.js 14 • TypeScript • Tailwind CSS • Axios • Recharts (Analytics)  
+**Backend**: Node.js • Express • MongoDB • Mongoose • JWT  
+**Integrations**: Cloudinary (CV Storage) • NodeMailer (Gmail SMTP)  
+**DevOps**: Git • GitHub  
 
 ---
 
@@ -115,16 +182,21 @@ Frontend runs on: **http://localhost:3001**
 
 | Component | Status |
 |-----------|--------|
-| Frontend - Candidate Portal | ✅ Complete (4 pages) |
-| Frontend - Employer Portal | ✅ Complete (4 pages) |
-| Frontend - Admin Portal | ✅ Complete (4 pages) |
-| Backend - Auth & Job Services | ✅ Complete |
-| Backend - Application & Interview | ✅ Complete |
-| Backend - Admin Service | ✅ Complete |
-| Email Notifications | ✅ Complete |
-| CV Upload (Cloudinary) | ✅ Complete |
+| Frontend - Candidate Portal | ✅ Complete (4 pages: Dashboard, Jobs, Applications, Profile) |
+| Frontend - Employer Portal | ✅ Complete (5 pages: Dashboard, Jobs, Post Job, Candidates, Analytics) |
+| Frontend - Admin Portal | ✅ Complete (4 pages: Dashboard, Users, Jobs, Logs) |
+| Frontend - Public Pages | ✅ Complete (Landing, Login, Register, About, Contact, FAQ, Privacy) |
+| Backend - Auth & User Services | ✅ Complete (Login, Register, Profile, Search) |
+| Backend - Job & Application Services | ✅ Complete (CRUD, Invitations, Status Management) |
+| Backend - Interview Service | ✅ Complete (Scheduling, Confirmation, Email Notifications) |
+| Backend - Analytics Service | ✅ Complete (Hiring Trends, Time-to-Hire, Demographics) |
+| Backend - Admin Service | ✅ Complete (User Management, Job Moderation, System Stats, Logs) |
+| Email Notifications | ✅ Complete (Interview Invites, Status Updates, Job Invitations) |
+| CV Upload (Cloudinary) | ✅ Complete (Image & PDF support) |
+| Salary Management | ✅ Complete (Min/Max range with currency) |
+| Post-Login Redirect | ✅ Complete (Role-based routing, preserved URLs) |
 
-**Total**: 16 pages, 40+ API endpoints, production-ready! 🚀
+**Total**: 13 pages + 7 public pages, 40+ API endpoints, production-ready! 🚀
 
 ---
 

@@ -3,20 +3,26 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
-import { applicationService } from '@/lib/applicationService';
-import { Candidate, FilterCriteria } from '@/types';
+import { userService } from '@/lib/userService';
+import { jobService } from '@/lib/jobService';
+import { Candidate, FilterCriteria, Job } from '@/types';
 import Loading from '@/components/Loading';
 import CandidateCard from '@/components/CandidateCard';
 import Modal from '@/components/Modal';
-import { FiSearch, FiFilter } from 'react-icons/fi';
+import { FiSearch, FiFilter, FiMail } from 'react-icons/fi';
 
 export default function EmployerCandidates() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>([]);
+  const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string>('');
+  const [positionTitle, setPositionTitle] = useState<string>('');
+  const [invitationMessage, setInvitationMessage] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState<FilterCriteria>({
     employmentType: undefined,
@@ -33,23 +39,27 @@ export default function EmployerCandidates() {
     }
 
     if (user) {
-      loadCandidates();
+      loadData();
     }
   }, [user, authLoading, router]);
 
-  const loadCandidates = async () => {
+  const loadData = async () => {
     try {
-      const data = await applicationService.getApplicants({
-        skills: searchTerm || undefined,
-        minAge: filters.ageMin,
-        maxAge: filters.ageMax,
-        employmentType: filters.employmentType,
-        workMode: filters.workMode,
-      });
-      setCandidates(data);
-      setFilteredCandidates(data);
+      const [candidatesData, jobsData] = await Promise.all([
+        userService.searchCandidates({
+          skills: searchTerm || undefined,
+          minAge: filters.ageMin,
+          maxAge: filters.ageMax,
+          employmentType: filters.employmentType,
+          workMode: filters.workMode,
+        }),
+        jobService.getMyJobs()
+      ]);
+      setCandidates(candidatesData);
+      setFilteredCandidates(candidatesData);
+      setJobs(jobsData.filter((j: Job) => j.status === 'open'));
     } catch (error) {
-      console.error('Error loading candidates:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -100,9 +110,34 @@ export default function EmployerCandidates() {
 
   useEffect(() => {
     if (user) {
-      loadCandidates();
+      loadData();
     }
   }, [user, searchTerm, filters]);
+
+  const handleInviteToApply = (candidate: Candidate) => {
+    setSelectedCandidate(candidate);
+    setShowInviteModal(true);
+  };
+
+  const sendInvitation = async () => {
+    if (!selectedCandidate || !positionTitle.trim() || !selectedJobId) {
+      alert('Please enter a position title and select a job posting');
+      return;
+    }
+    
+    try {
+      await jobService.sendJobInvitation(selectedJobId, selectedCandidate._id, positionTitle.trim(), invitationMessage);
+      alert(`Invitation sent successfully to ${selectedCandidate.name}!`);
+      setShowInviteModal(false);
+      setSelectedCandidate(null);
+      setSelectedJobId('');
+      setPositionTitle('');
+      setInvitationMessage('');
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      alert('Failed to send invitation. Please try again.');
+    }
+  };
 
   if (authLoading || loading) {
     return <Loading fullScreen />;
@@ -117,8 +152,16 @@ export default function EmployerCandidates() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Applicants</h1>
-          <p className="text-gray-600 mt-2">View and filter candidates who applied to your jobs</p>
+          <h1 className="text-3xl font-bold text-gray-900">Talent Discovery</h1>
+          <p className="text-gray-600 mt-2">
+            Search and discover qualified candidates across the platform. Use advanced filters to find the perfect match for your open positions.
+          </p>
+          <div className="mt-4 bg-primary-50 border-l-4 border-primary-600 p-4">
+            <p className="text-sm text-primary-700">
+              <strong>Tip:</strong> This page shows ALL candidates on the platform, not just those who applied to your jobs. 
+              To manage existing applicants, visit the <a href="/employer/jobs" className="underline font-medium">My Jobs</a> page.
+            </p>
+          </div>
         </div>
 
         {/* Search and Filters */}
@@ -218,13 +261,21 @@ export default function EmployerCandidates() {
         {filteredCandidates.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCandidates.map((candidate) => (
-              <CandidateCard
-                key={candidate._id}
-                candidate={candidate}
-                onClick={() => setSelectedCandidate(candidate)}
-                showActions
-                onViewProfile={() => setSelectedCandidate(candidate)}
-              />
+              <div key={candidate._id} className="relative">
+                <CandidateCard
+                  candidate={candidate}
+                  onClick={() => setSelectedCandidate(candidate)}
+                  showActions
+                  onViewProfile={() => setSelectedCandidate(candidate)}
+                />
+                <button
+                  onClick={() => handleInviteToApply(candidate)}
+                  className="absolute top-4 right-4 bg-primary-600 text-white p-2 rounded-full hover:bg-primary-700 shadow-lg transition-colors z-10"
+                  title="Invite to apply"
+                >
+                  <FiMail className="h-4 w-4" />
+                </button>
+              </div>
             ))}
           </div>
         ) : (
@@ -335,6 +386,119 @@ export default function EmployerCandidates() {
               <div className="pt-4">
                 <button onClick={() => setSelectedCandidate(null)} className="btn-secondary w-full">
                   Close
+                </button>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        {/* Invite to Apply Modal */}
+        <Modal
+          isOpen={showInviteModal}
+          onClose={() => {
+            setShowInviteModal(false);
+            setSelectedCandidate(null);
+            setSelectedJobId('');
+            setPositionTitle('');
+            setInvitationMessage('');
+          }}
+          title="Invite Candidate to Apply"
+        >
+          {selectedCandidate && (
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900">{selectedCandidate.name}</h4>
+                <p className="text-sm text-gray-600">{selectedCandidate.email}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Job Posting *
+                </label>
+                <select
+                  value={selectedJobId}
+                  onChange={(e) => {
+                    setSelectedJobId(e.target.value);
+                    // Auto-fill position title when job is selected
+                    const job = jobs.find(j => j._id === e.target.value);
+                    if (job) setPositionTitle(job.title);
+                  }}
+                  className="input-field w-full"
+                  required
+                >
+                  <option value="">Choose a job posting...</option>
+                  {jobs.map((job) => (
+                    <option key={job._id} value={job._id}>
+                      {job.title} - {job.location}
+                    </option>
+                  ))}
+                </select>
+                {jobs.length === 0 && (
+                  <p className="text-sm text-yellow-600 mt-2">
+                    You don't have any open positions. Please create a job posting first.
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Position Title (Customizable) *
+                </label>
+                <input
+                  type="text"
+                  value={positionTitle}
+                  onChange={(e) => setPositionTitle(e.target.value)}
+                  className="input-field w-full"
+                  placeholder="e.g., Senior React Developer, Marketing Manager, etc."
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Auto-filled from selected job. You can customize it if needed.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Personal Message (Optional)
+                </label>
+                <textarea
+                  value={invitationMessage}
+                  onChange={(e) => setInvitationMessage(e.target.value)}
+                  className="input-field w-full"
+                  rows={4}
+                  placeholder="Add a personalized message to the candidate explaining why you think they'd be a great fit for this position..."
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This message will be included in the invitation email
+                </p>
+              </div>
+
+              <div className="bg-primary-50 border-l-4 border-primary-600 p-4">
+                <p className="text-sm text-primary-700">
+                  An invitation email will be sent to this candidate with details about the position 
+                  and a link to apply directly.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={sendInvitation}
+                  className="btn-primary flex-1"
+                  disabled={!positionTitle.trim() || !selectedJobId || jobs.length === 0}
+                >
+                  Send Invitation
+                </button>
+                <button
+                  onClick={() => {
+                    setShowInviteModal(false);
+                    setSelectedCandidate(null);
+                    setSelectedJobId('');
+                    setPositionTitle('');
+                    setInvitationMessage('');
+                  }}
+                  className="btn-secondary flex-1"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

@@ -43,6 +43,17 @@ export default function CandidateDashboard() {
     }
   };
 
+  const handleInterviewResponse = async (interviewId: string, status: 'confirmed' | 'declined') => {
+    try {
+      await interviewService.updateInterviewStatus(interviewId, status);
+      alert(`Interview ${status === 'confirmed' ? 'confirmed' : 'declined'} successfully!`);
+      loadData(); // Refresh interviews
+    } catch (error) {
+      console.error('Error updating interview status:', error);
+      alert('Failed to update interview status. Please try again.');
+    }
+  };
+
   if (authLoading || loading) {
     return <Loading fullScreen />;
   }
@@ -68,7 +79,7 @@ export default function CandidateDashboard() {
       title: 'Shortlisted',
       value: applications.filter((a) => a.status === 'shortlisted').length,
       icon: FiCheckCircle,
-      color: 'bg-green-100 text-green-600',
+      color: 'bg-primary-100 text-primary-700',
     },
     {
       title: 'Upcoming Interviews',
@@ -139,7 +150,7 @@ export default function CandidateDashboard() {
                   <span
                     className={`badge ${
                       app.status === 'shortlisted'
-                        ? 'badge-success'
+                        ? 'bg-primary-100 text-primary-700'
                         : app.status === 'reviewed'
                         ? 'badge-warning'
                         : app.status === 'rejected'
@@ -166,24 +177,88 @@ export default function CandidateDashboard() {
         {/* Upcoming Interviews */}
         {interviews.filter((i) => i.status === 'scheduled' || i.status === 'confirmed').length > 0 && (
           <div className="card">
-            <h3 className="text-lg font-semibold mb-4">Upcoming Interviews</h3>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <FiCalendar className="text-primary-600" />
+              Upcoming Interviews
+            </h3>
             <div className="space-y-4">
               {interviews
                 .filter((i) => i.status === 'scheduled' || i.status === 'confirmed')
+                .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                 .map((interview) => (
-                  <div key={interview._id} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center">
-                      <FiCalendar className="text-primary-600 mr-3 h-5 w-5" />
-                      <div>
-                        <p className="font-medium text-gray-900">Interview Scheduled</p>
+                  <div key={interview._id} className="border border-gray-200 rounded-lg p-4 hover:border-primary-300 transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900 mb-1">
+                          {interview.job?.title || 'Position Interview'}
+                        </h4>
+                        <p className="text-sm text-gray-600 mb-2">
+                          {interview.job?.employer?.companyName || 'Company'}
+                        </p>
+                        <div className="flex items-center gap-4 text-sm text-gray-700">
+                          <span className="flex items-center gap-1">
+                            <FiCalendar className="h-4 w-4 text-primary-600" />
+                            {new Date(interview.date).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </span>
+                          <span className="font-medium">
+                            {new Date(interview.date).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      <span className={`badge ${
+                        interview.status === 'confirmed' ? 'bg-primary-100 text-primary-700' :
+                        interview.status === 'declined' ? 'badge-danger' :
+                        'badge-warning'
+                      }`}>
+                        {interview.status}
+                      </span>
+                    </div>
+                    
+                    {interview.meetingLink && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <a
+                          href={interview.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                        >
+                          Join Meeting →
+                        </a>
+                      </div>
+                    )}
+                    
+                    {interview.notes && (
+                      <div className="mt-3 pt-3 border-t border-gray-100">
                         <p className="text-sm text-gray-600">
-                          {new Date(interview.date).toLocaleDateString()} at {interview.time}
+                          <span className="font-medium">Notes:</span> {interview.notes}
                         </p>
                       </div>
-                    </div>
-                    <span className={`badge ${interview.status === 'confirmed' ? 'badge-success' : 'badge-warning'}`}>
-                      {interview.status}
-                    </span>
+                    )}
+                    
+                    {interview.status === 'scheduled' && (
+                      <div className="mt-3 pt-3 border-t border-gray-100 flex gap-3">
+                        <button
+                          onClick={() => handleInterviewResponse(interview._id, 'confirmed')}
+                          className="flex-1 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                        >
+                          Confirm Attendance
+                        </button>
+                        <button
+                          onClick={() => handleInterviewResponse(interview._id, 'declined')}
+                          className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
             </div>

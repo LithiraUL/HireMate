@@ -211,6 +211,7 @@ router.get('/job/:jobId', protect, authorize('employer'), async (req, res) => {
 
     const applications = await Application.find({ job: req.params.jobId })
       .populate('candidate', 'name email age skills cvUrl githubUrl linkedinUrl jobPreferences')
+      .populate('job', 'title status location employmentType')
       .sort({ createdAt: -1 });
 
     res.status(200).json({

@@ -57,15 +57,21 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      console.log('Fetching admin dashboard data...');
       const [statsData, activityData] = await Promise.all([
         getSystemStats(),
         getRecentActivity()
       ]);
       
+      console.log('Stats data:', statsData);
+      console.log('Activity data:', activityData);
+      
       setStats(statsData);
       setRecentActivity(activityData);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch dashboard data:', error);
+      console.error('Error details:', error.response?.data || error.message);
+      alert('Failed to load dashboard data. Please check the console for details.');
     } finally {
       setLoading(false);
     }

@@ -5,11 +5,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { jobService } from '@/lib/jobService';
 import { applicationService } from '@/lib/applicationService';
+import { interviewService } from '@/lib/interviewService';
 import { Job, Application } from '@/types';
 import Loading from '@/components/Loading';
 import JobCard from '@/components/JobCard';
 import Modal from '@/components/Modal';
-import { FiEdit, FiTrash2, FiEye } from 'react-icons/fi';
+import { FiEdit, FiTrash2, FiEye, FiCalendar } from 'react-icons/fi';
 
 export default function EmployerJobs() {
   const { user, loading: authLoading } = useAuth();
@@ -19,6 +20,14 @@ export default function EmployerJobs() {
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [interviewData, setInterviewData] = useState({
+    date: '',
+    time: '',
+    meetingLink: '',
+    notes: ''
+  });
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'employer')) {
@@ -79,6 +88,42 @@ export default function EmployerJobs() {
     } catch (error) {
       console.error('Error updating status:', error);
       alert('Failed to update status. Please try again.');
+    }
+  };
+
+  const handleScheduleInterview = (application: Application) => {
+    setSelectedApplication(application);
+    setShowInterviewModal(true);
+    setInterviewData({ date: '', time: '', meetingLink: '', notes: '' });
+  };
+
+  const handleSubmitInterview = async () => {
+    if (!selectedApplication || !selectedJob) return;
+
+    if (!interviewData.date || !interviewData.time) {
+      alert('Please select date and time');
+      return;
+    }
+
+    try {
+      await interviewService.scheduleInterview({
+        applicationId: selectedApplication._id,
+        date: interviewData.date,
+        time: interviewData.time,
+        mode: interviewData.meetingLink ? 'online' : 'onsite',
+        meetingLink: interviewData.meetingLink,
+        location: interviewData.meetingLink ? undefined : 'To be confirmed',
+        notes: interviewData.notes
+      });
+
+      alert('Interview scheduled successfully! Email sent to candidate.');
+      setShowInterviewModal(false);
+      setSelectedApplication(null);
+      setInterviewData({ date: '', time: '', meetingLink: '', notes: '' });
+      loadApplications(); // Refresh applications
+    } catch (error) {
+      console.error('Error scheduling interview:', error);
+      alert('Failed to schedule interview. Please try again.');
     }
   };
 
@@ -200,9 +245,9 @@ export default function EmployerJobs() {
                             <p className="text-sm text-gray-600">{app.candidate?.email}</p>
                           </div>
                           <span
-                            className={`badge ${
-                              app.status === 'shortlisted'
-                                ? 'badge-success'
+                            className={`text-xs badge ${
+                                app.status === 'shortlisted'
+                                ? 'bg-primary-100 text-primary-700'
                                 : app.status === 'reviewed'
                                 ? 'badge-warning'
                                 : app.status === 'rejected'
@@ -248,7 +293,7 @@ export default function EmployerJobs() {
                           {app.status === 'reviewed' && (
                             <button
                               onClick={() => handleUpdateStatus(app._id, 'shortlisted')}
-                              className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700"
+                              className="text-xs bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700"
                             >
                               Shortlist
                             </button>
@@ -259,6 +304,15 @@ export default function EmployerJobs() {
                               className="text-xs btn-danger py-1 px-3"
                             >
                               Reject
+                            </button>
+                          )}
+                          {(app.status === 'shortlisted' || app.status === 'reviewed') && (
+                            <button
+                              onClick={() => handleScheduleInterview(app)}
+                              className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
+                            >
+                              <FiCalendar />
+                              Schedule Interview
                             </button>
                           )}
                         </div>
@@ -292,6 +346,97 @@ export default function EmployerJobs() {
                 Delete
               </button>
               <button onClick={() => setShowDeleteConfirm(null)} className="btn-secondary flex-1">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </Modal>
+
+        {/* Interview Scheduling Modal */}
+        <Modal
+          isOpen={showInterviewModal}
+          onClose={() => {
+            setShowInterviewModal(false);
+            setSelectedApplication(null);
+          }}
+          title="Schedule Interview"
+        >
+          <div className="space-y-4">
+            {selectedApplication && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900">{selectedApplication.candidate?.name}</h4>
+                <p className="text-sm text-gray-600">{selectedApplication.candidate?.email}</p>
+                <p className="text-sm text-gray-600 mt-1">Job: {selectedJob?.title}</p>
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Interview Date *
+              </label>
+              <input
+                type="date"
+                value={interviewData.date}
+                onChange={(e) => setInterviewData({ ...interviewData, date: e.target.value })}
+                className="input-field w-full"
+                min={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Interview Time *
+              </label>
+              <input
+                type="time"
+                value={interviewData.time}
+                onChange={(e) => setInterviewData({ ...interviewData, time: e.target.value })}
+                className="input-field w-full"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Meeting Link (Zoom/Google Meet/Teams)
+              </label>
+              <input
+                type="url"
+                value={interviewData.meetingLink}
+                onChange={(e) => setInterviewData({ ...interviewData, meetingLink: e.target.value })}
+                className="input-field w-full"
+                placeholder="https://zoom.us/j/..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Notes (Optional)
+              </label>
+              <textarea
+                value={interviewData.notes}
+                onChange={(e) => setInterviewData({ ...interviewData, notes: e.target.value })}
+                className="input-field w-full"
+                rows={3}
+                placeholder="Additional information for the candidate..."
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleSubmitInterview}
+                className="btn-primary flex-1"
+              >
+                Schedule Interview
+              </button>
+              <button
+                onClick={() => {
+                  setShowInterviewModal(false);
+                  setSelectedApplication(null);
+                }}
+                className="btn-secondary flex-1"
+              >
                 Cancel
               </button>
             </div>

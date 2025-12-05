@@ -4,9 +4,12 @@ import { Interview } from '@/types';
 export const interviewService = {
   async scheduleInterview(data: {
     applicationId: string;
-    date: Date;
+    date: string;
     time: string;
+    mode: 'online' | 'onsite';
     meetingLink?: string;
+    location?: string;
+    notes?: string;
   }): Promise<Interview> {
     const response = await api.post('/interviews', data);
     return response.data.interview || response.data;
@@ -21,7 +24,7 @@ export const interviewService = {
     interviewId: string,
     status: 'confirmed' | 'declined'
   ): Promise<Interview> {
-    const response = await api.put(`/interviews/${interviewId}`, { status });
+    const response = await api.put(`/interviews/${interviewId}/status`, { status });
     return response.data.interview || response.data;
   },
 };

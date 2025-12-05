@@ -76,7 +76,7 @@ export default function EmployerDashboard() {
       title: 'Shortlisted',
       value: applications.filter((a) => a.status === 'shortlisted').length,
       icon: FiCheckCircle,
-      color: 'bg-green-100 text-green-600',
+      color: 'bg-primary-100 text-primary-700',
     },
   ];
 
@@ -189,7 +189,7 @@ export default function EmployerDashboard() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`badge ${
-                          app.status === 'shortlisted' ? 'badge-success' :
+                          app.status === 'shortlisted' ? 'bg-primary-100 text-primary-700' :
                           app.status === 'reviewed' ? 'badge-warning' :
                           app.status === 'rejected' ? 'badge-danger' : 'badge-info'
                         }`}>

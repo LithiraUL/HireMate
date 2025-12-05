@@ -39,8 +39,14 @@ router.post('/', protect, authorize('employer'), async (req, res) => {
 
     // Get application and verify ownership
     const application = await Application.findById(applicationId)
-      .populate('jobId')
-      .populate('candidateId');
+      .populate({
+        path: 'job',
+        select: 'title employer status location'
+      })
+      .populate({
+        path: 'candidate',
+        select: 'name email'
+      });
 
     if (!application) {
       return res.status(404).json({
@@ -50,7 +56,7 @@ router.post('/', protect, authorize('employer'), async (req, res) => {
     }
 
     // Verify employer owns the job
-    if (application.jobId.employerId.toString() !== req.user.id) {
+    if (application.job.employer.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: 'Not authorized to schedule interview for this application'
@@ -69,8 +75,8 @@ router.post('/', protect, authorize('employer'), async (req, res) => {
     // Create interview
     const interview = await Interview.create({
       applicationId,
-      jobId: application.jobId._id,
-      candidateId: application.candidateId._id,
+      jobId: application.job._id,
+      candidateId: application.candidate._id,
       employerId: req.user.id,
       date,
       time,
@@ -89,7 +95,7 @@ router.post('/', protect, authorize('employer'), async (req, res) => {
     // Send email notification to candidate
     const employer = await User.findById(req.user.id);
     const emailHtml = interviewInvitationEmail(
-      application.candidateId.name,
+      application.candidate.name,
       employer.name,
       employer.companyName,
       {
@@ -103,7 +109,7 @@ router.post('/', protect, authorize('employer'), async (req, res) => {
     );
 
     await sendEmail({
-      to: application.candidateId.email,
+      to: application.candidate.email,
       subject: `Interview Invitation from ${employer.companyName}`,
       html: emailHtml
     });

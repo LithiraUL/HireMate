@@ -50,7 +50,7 @@ export default function ContactPage() {
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h2>
             
             {submitted && (
-              <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+              <div className="bg-primary-100 border border-primary-400 text-primary-700 px-4 py-3 rounded mb-4">
                 Thank you! Your message has been sent successfully. Check your email for confirmation.
               </div>
             )}

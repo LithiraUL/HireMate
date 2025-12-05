@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { jobService } from '@/lib/jobService';
 import { applicationService } from '@/lib/applicationService';
 import { Job } from '@/types';
@@ -14,6 +14,7 @@ import { FiSearch, FiFilter } from 'react-icons/fi';
 export default function CandidateJobs() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [filteredJobs, setFilteredJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +28,9 @@ export default function CandidateJobs() {
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'candidate')) {
+      // Store the current URL for redirect after login
+      const currentPath = window.location.pathname + window.location.search;
+      sessionStorage.setItem('redirectAfterLogin', currentPath);
       router.push('/login');
       return;
     }
@@ -43,8 +47,21 @@ export default function CandidateJobs() {
   const loadJobs = async () => {
     try {
       const data = await jobService.getAllJobs();
-      setJobs(data.filter((job) => job.status === 'open'));
-      setFilteredJobs(data.filter((job) => job.status === 'open'));
+      const openJobs = data.filter((job) => job.status === 'open');
+      setJobs(openJobs);
+      setFilteredJobs(openJobs);
+      
+      // Check if there's a highlighted job in URL params
+      const highlightedJobId = searchParams.get('highlight');
+      if (highlightedJobId) {
+        const jobToHighlight = openJobs.find(job => job._id === highlightedJobId);
+        if (jobToHighlight) {
+          // Auto-open the job modal
+          setSelectedJob(jobToHighlight);
+          // Scroll to top to show the modal
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }
     } catch (error) {
       console.error('Error loading jobs:', error);
     } finally {
@@ -225,8 +242,12 @@ export default function CandidateJobs() {
                       {typeof selectedJob.salaryRange === 'string' 
                         ? selectedJob.salaryRange 
                         : selectedJob.salaryRange.min && selectedJob.salaryRange.max
-                          ? `${selectedJob.salaryRange.min} - ${selectedJob.salaryRange.max}`
-                          : 'Negotiable'
+                          ? `${selectedJob.salaryRange.currency || 'LKR'} ${selectedJob.salaryRange.min.toLocaleString()} - ${selectedJob.salaryRange.max.toLocaleString()}`
+                          : selectedJob.salaryRange.min
+                            ? `${selectedJob.salaryRange.currency || 'LKR'} ${selectedJob.salaryRange.min.toLocaleString()}+`
+                            : selectedJob.salaryRange.max
+                              ? `Up to ${selectedJob.salaryRange.currency || 'LKR'} ${selectedJob.salaryRange.max.toLocaleString()}`
+                              : 'Negotiable'
                       }
                     </span>
                   </div>

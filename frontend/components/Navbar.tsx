@@ -35,6 +35,7 @@ const Navbar: React.FC = () => {
     { name: 'Post Job', path: '/employer/post-job' },
     { name: 'My Jobs', path: '/employer/jobs' },
     { name: 'Find Candidates', path: '/employer/candidates' },
+    { name: 'Analytics', path: '/employer/analytics' },
   ];
 
   const adminLinks = [

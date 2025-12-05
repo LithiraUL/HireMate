@@ -5,27 +5,30 @@ AI-powered recruitment management system for SMEs in Sri Lanka. A comprehensive 
 ## 🚀 Features
 
 ### For Candidates
-- ✅ Create professional profiles and upload CVs (PDF/DOC/Image)
-- ✅ Browse and search available jobs
+- ✅ Create professional profiles and upload CVs (PDF/DOC/Image via Cloudinary)
+- ✅ Browse and search available jobs with advanced filtering
 - ✅ Apply for jobs with one click
-- ✅ Track application status in real-time
-- ✅ Manage interview invitations
+- ✅ Track application status in real-time (pending, reviewed, shortlisted, rejected)
+- ✅ Manage interview invitations (confirm/decline with email notifications)
 - ✅ Set job preferences (full-time/part-time, onsite/remote/hybrid)
-- ✅ Link GitHub and LinkedIn profiles for skill validation
+- ✅ Receive personalized job invitations from employers
+- ✅ Direct job access via email links with auto-login redirect
 
 ### For Employers
-- ✅ Post jobs with detailed requirements
-- ✅ Search and filter candidates by skills, age, and preferences
-- ✅ View AI-ranked candidate recommendations
+- ✅ Post jobs with detailed requirements (title, description, skills, salary range)
+- ✅ Search and filter ALL candidates by skills, age, experience
+- ✅ Send personalized job invitations with custom messages
 - ✅ Schedule interviews with automated email notifications
-- ✅ Track applications and manage hiring pipeline
-- ✅ Access analytics dashboard
+- ✅ Track applications and manage hiring pipeline with status updates
+- ✅ Access analytics dashboard (hiring trends, time-to-hire, demographics)
+- ✅ Differentiated job management vs talent discovery pages
 
 ### For Administrators
-- ✅ Manage all users (candidates, employers)
-- ✅ Monitor system activity and logs
-- ✅ Remove fraudulent accounts
-- ✅ View platform statistics
+- ✅ Manage all users (candidates, employers, admins)
+- ✅ Monitor system activity and recent activity logs
+- ✅ Moderate job postings and applications
+- ✅ View comprehensive platform statistics (users, jobs, applications, interviews)
+- ✅ System-wide monitoring and analytics
 
 ## 🛠️ Technology Stack
 
@@ -33,20 +36,21 @@ AI-powered recruitment management system for SMEs in Sri Lanka. A comprehensive 
 - **Next.js 14** - React framework with App Router
 - **TypeScript** - Type-safe development
 - **Tailwind CSS** - Utility-first styling
-- **React Query** - Data fetching and caching
-- **React Hook Form** - Form management
-- **Axios** - HTTP client
-- **React Icons** - Icon library
-- **date-fns** - Date utilities
+- **Axios** - HTTP client with interceptors
+- **React Icons** - Icon library (Feather Icons)
+- **Recharts** - Analytics charts and data visualization
+- **React Hook Form** - Form management (planned)
 
-### Backend (To be integrated)
-- **Node.js** with **Express.js**
-- **MongoDB Atlas** - Database
+### Backend (✅ Complete & Integrated)
+- **Node.js** with **Express.js** - RESTful API server
+- **MongoDB Atlas** - Cloud database with Mongoose ODM
 - **Cloudinary** - File storage (CVs, images)
-- **NodeMailer** - Email service
-- **JWT** - Authentication
+- **NodeMailer** - Email service with HTML templates (Gmail SMTP)
+- **JWT** - Token-based authentication
+- **bcryptjs** - Password hashing
+- **Multer** - File upload handling
 
-### AI Layer (Phase 2)
+### AI Layer (Phase 2 - Planned)
 - **Python** with **FastAPI**
 - **Google Gemini API** - CV validation
 - **DeepSeek API** - Code repository analysis
@@ -93,20 +97,29 @@ AI-powered recruitment management system for SMEs in Sri Lanka. A comprehensive 
 ```
 HireMate/
 ├── app/                          # Next.js App Router pages
-│   ├── candidate/               # Candidate portal pages
-│   │   ├── dashboard/          # Candidate dashboard
-│   │   ├── jobs/               # Browse jobs
-│   │   ├── applications/       # View applications
-│   │   └── profile/            # Profile management
-│   ├── employer/                # Employer portal pages
-│   │   ├── dashboard/          # Employer dashboard
+│   ├── candidate/               # Candidate portal (4 pages)
+│   │   ├── dashboard/          # Dashboard with interviews & applications
+│   │   ├── jobs/               # Browse & apply for jobs
+│   │   ├── applications/       # Application history
+│   │   └── profile/            # Profile & CV management
+│   ├── employer/                # Employer portal (5 pages)
+│   │   ├── dashboard/          # Overview & recent applications
 │   │   ├── post-job/           # Create job postings
-│   │   ├── jobs/               # Manage jobs
-│   │   └── candidates/         # Search candidates
-│   ├── admin/                   # Admin portal (to be implemented)
-│   ├── login/                   # Login page
+│   │   ├── jobs/               # Manage jobs & applicants
+│   │   ├── candidates/         # Talent discovery & invitations
+│   │   └── analytics/          # Hiring trends & metrics
+│   ├── admin/                   # Admin portal (4 pages) ✅
+│   │   ├── dashboard/          # System stats & activity
+│   │   ├── users/              # User management
+│   │   ├── jobs/               # Job moderation
+│   │   └── logs/               # System logs
+│   ├── login/                   # Login with role-based redirect
 │   ├── register/                # Registration page
-│   ├── layout.tsx              # Root layout
+│   ├── about/                   # About page
+│   ├── contact/                 # Contact form
+│   ├── faq/                     # FAQ page
+│   ├── privacy/                 # Privacy policy
+│   ├── layout.tsx              # Root layout with Navbar
 │   ├── page.tsx                # Landing page
 │   └── globals.css             # Global styles
 ├── components/                  # Reusable React components
@@ -138,11 +151,11 @@ HireMate/
 ## 🎨 Design System
 
 ### Color Palette
-- **Primary**: Blue (#0ea5e9) - Used for CTAs, links, and primary actions
-- **Secondary**: Purple (#d946ef) - Accent color
-- **Success**: Green - Positive actions/status
+- **Primary**: Blue (#3b82f6) - Used for CTAs, links, success states, and primary actions
+- **Secondary**: Gray - Neutral actions and decline states
 - **Warning**: Yellow - Pending/review status
 - **Danger**: Red - Errors/rejections
+- **Info**: Light blue backgrounds for informational content
 
 ### Components
 - **Buttons**: `.btn-primary`, `.btn-secondary`, `.btn-danger`
@@ -174,26 +187,33 @@ HireMate/
 
 ## 🚧 Development Roadmap
 
-### Phase 1 (Current) ✅
+### Phase 1 ✅ COMPLETE
 - [x] Project setup and configuration
-- [x] Authentication system
-- [x] Candidate portal (dashboard, profile, job browsing, applications)
-- [x] Employer portal (dashboard, job posting, candidate search)
+- [x] Authentication system with JWT
+- [x] Candidate portal (4 pages: dashboard, jobs, applications, profile)
+- [x] Employer portal (5 pages: dashboard, jobs, post-job, candidates, analytics)
+- [x] Admin portal (4 pages: dashboard, users, jobs, logs)
+- [x] Interview scheduling with email automation (NodeMailer)
+- [x] CV upload with Cloudinary integration
+- [x] Analytics dashboard (hiring trends, time-to-hire, demographics)
+- [x] Advanced search and filtering
+- [x] Talent discovery and job invitations
+- [x] Post-login redirect with preserved URLs
+- [x] Salary range management (min/max)
 - [x] Reusable components library
 
 ### Phase 2 (Upcoming)
-- [ ] Admin portal implementation
 - [ ] AI Ranking Engine integration
 - [ ] CV Validation Engine (GitHub/LinkedIn analysis)
-- [ ] Interview scheduling with email automation
-- [ ] Analytics dashboard
-- [ ] Advanced search and filtering
+- [ ] Skill matching algorithms
+- [ ] Automated candidate ranking
 
 ### Phase 3 (Future)
-- [ ] Real-time notifications
+- [ ] Real-time notifications with WebSockets
 - [ ] Chat/messaging system
 - [ ] Mobile app (React Native)
 - [ ] Multi-language support
+- [ ] Video interview integration
 
 ## 🧪 Testing
 

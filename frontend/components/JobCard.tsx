@@ -78,8 +78,12 @@ const JobCard: React.FC<JobCardProps> = ({
               {typeof job.salaryRange === 'string' 
                 ? job.salaryRange 
                 : job.salaryRange.min && job.salaryRange.max
-                  ? `${job.salaryRange.min} - ${job.salaryRange.max}`
-                  : 'Negotiable'
+                  ? `${job.salaryRange.currency || 'LKR'} ${job.salaryRange.min.toLocaleString()} - ${job.salaryRange.max.toLocaleString()}`
+                  : job.salaryRange.min
+                    ? `${job.salaryRange.currency || 'LKR'} ${job.salaryRange.min.toLocaleString()}+`
+                    : job.salaryRange.max
+                      ? `Up to ${job.salaryRange.currency || 'LKR'} ${job.salaryRange.max.toLocaleString()}`
+                      : 'Negotiable'
               }
             </span>
           </div>

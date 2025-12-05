@@ -30,4 +30,8 @@ export const jobService = {
     const response = await api.get('/jobs/employer/my-jobs');
     return response.data.jobs || response.data;
   },
+
+  async sendJobInvitation(jobId: string, candidateId: string, positionTitle: string, message?: string): Promise<void> {
+    await api.post(`/jobs/${jobId}/invite`, { candidateId, positionTitle, message });
+  },
 };

@@ -11,6 +11,8 @@ const Interview = require('../models/Interview');
 // @access  Private/Admin
 router.get('/stats', protect, adminOnly, async (req, res) => {
   try {
+    console.log('Admin stats endpoint hit by user:', req.user.email);
+    
     const totalUsers = await User.countDocuments();
     const totalCandidates = await User.countDocuments({ role: 'candidate' });
     const totalEmployers = await User.countDocuments({ role: 'employer' });
@@ -27,21 +29,26 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
       status: 'scheduled'
     });
 
+    const statsData = {
+      totalUsers,
+      totalCandidates,
+      totalEmployers,
+      totalJobs,
+      activeJobs,
+      totalApplications,
+      pendingApplications,
+      totalInterviews,
+      upcomingInterviews
+    };
+    
+    console.log('Stats data:', statsData);
+
     res.status(200).json({
       success: true,
-      data: {
-        totalUsers,
-        totalCandidates,
-        totalEmployers,
-        totalJobs,
-        activeJobs,
-        totalApplications,
-        pendingApplications,
-        totalInterviews,
-        upcomingInterviews
-      }
+      data: statsData
     });
   } catch (error) {
+    console.error('Error in /admin/stats:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch system statistics',
@@ -55,6 +62,7 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
 // @access  Private/Admin
 router.get('/activity', protect, adminOnly, async (req, res) => {
   try {
+    console.log('Admin activity endpoint hit by user:', req.user.email);
     const limit = parseInt(req.query.limit) || 10;
     
     // Get recent users
@@ -82,8 +90,13 @@ router.get('/activity', protect, adminOnly, async (req, res) => {
     const recentInterviews = await Interview.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate('job', 'title')
-      .select('job createdAt');
+      .populate('jobId', 'title')
+      .select('jobId createdAt');
+
+    console.log('Recent users count:', recentUsers.length);
+    console.log('Recent jobs count:', recentJobs.length);
+    console.log('Recent applications count:', recentApplications.length);
+    console.log('Recent interviews count:', recentInterviews.length);
 
     // Combine and format activities
     const activities = [];
@@ -121,11 +134,11 @@ router.get('/activity', protect, adminOnly, async (req, res) => {
     });
     
     recentInterviews.forEach(interview => {
-      if (interview.job) {
+      if (interview.jobId) {
         activities.push({
           id: `interview-${interview._id}`,
           type: 'interview_scheduled',
-          message: `Interview scheduled for ${interview.job.title}`,
+          message: `Interview scheduled for ${interview.jobId.title}`,
           timestamp: interview.createdAt
         });
       }
@@ -135,11 +148,15 @@ router.get('/activity', protect, adminOnly, async (req, res) => {
     activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
     const limitedActivities = activities.slice(0, limit);
 
+    console.log('Total activities:', activities.length);
+    console.log('Limited activities:', limitedActivities.length);
+
     res.status(200).json({
       success: true,
       data: limitedActivities
     });
   } catch (error) {
+    console.error('Error in /admin/activity:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch recent activity',

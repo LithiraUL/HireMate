@@ -18,15 +18,30 @@ export default function PostJob() {
     experienceRequired: 0,
     jobType: 'full-time' as 'full-time' | 'part-time',
     workMode: 'onsite' as 'onsite' | 'remote' | 'hybrid',
-    salaryRange: '',
+    salaryRange: {
+      min: '',
+      max: '',
+      currency: 'LKR'
+    },
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'experienceRequired' ? parseInt(value) || 0 : value,
-    });
+    
+    if (name === 'salaryMin' || name === 'salaryMax') {
+      setFormData({
+        ...formData,
+        salaryRange: {
+          ...formData.salaryRange,
+          [name === 'salaryMin' ? 'min' : 'max']: value
+        }
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: name === 'experienceRequired' ? parseInt(value) || 0 : value,
+      });
+    }
   };
 
   const handleAddSkill = () => {
@@ -56,10 +71,22 @@ export default function PostJob() {
 
     setLoading(true);
     try {
-      await jobService.createJob({
+      const jobData = {
         ...formData,
+        salaryRange: {
+          min: formData.salaryRange.min ? parseInt(formData.salaryRange.min) : undefined,
+          max: formData.salaryRange.max ? parseInt(formData.salaryRange.max) : undefined,
+          currency: formData.salaryRange.currency
+        },
         status: 'open',
-      });
+      };
+      
+      // Remove salaryRange if both min and max are empty
+      if (!jobData.salaryRange.min && !jobData.salaryRange.max) {
+        delete jobData.salaryRange;
+      }
+      
+      await jobService.createJob(jobData);
       alert('Job posted successfully!');
       router.push('/employer/jobs');
     } catch (error) {
@@ -177,16 +204,26 @@ export default function PostJob() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Salary Range
+                  Salary Range (LKR)
                 </label>
-                <input
-                  type="text"
-                  name="salaryRange"
-                  value={formData.salaryRange}
-                  onChange={handleChange}
-                  className="input-field"
-                  placeholder="e.g., LKR 100,000 - 150,000"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="number"
+                    name="salaryMin"
+                    value={formData.salaryRange.min}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="Min (e.g., 100000)"
+                  />
+                  <input
+                    type="number"
+                    name="salaryMax"
+                    value={formData.salaryRange.max}
+                    onChange={handleChange}
+                    className="input-field"
+                    placeholder="Max (e.g., 150000)"
+                  />
+                </div>
               </div>
 
               <div>

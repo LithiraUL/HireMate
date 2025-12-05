@@ -34,13 +34,25 @@ interface SystemLog {
 
 // Dashboard Stats
 export const getSystemStats = async (): Promise<SystemStats> => {
-  const response = await api.get('/admin/stats');
-  return response.data.data;
+  try {
+    const response = await api.get('/admin/stats');
+    console.log('System stats response:', response.data);
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Error fetching system stats:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 export const getRecentActivity = async (): Promise<RecentActivity[]> => {
-  const response = await api.get('/admin/activity');
-  return response.data.data;
+  try {
+    const response = await api.get('/admin/activity');
+    console.log('Recent activity response:', response.data);
+    return response.data.data;
+  } catch (error: any) {
+    console.error('Error fetching recent activity:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
 // User Management
