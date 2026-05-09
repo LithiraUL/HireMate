@@ -5,6 +5,10 @@ const User = require('../models/User');
 const Job = require('../models/Job');
 const Application = require('../models/Application');
 const Interview = require('../models/Interview');
+const crypto = require('crypto');
+const { sendEmail, companyVerificationEmail } = require('../config/nodemailer');
+const https = require('https');
+const http = require('http');
 
 // @desc    Get system statistics
 // @route   GET /api/admin/stats
@@ -285,6 +289,106 @@ router.put('/users/:id/role', protect, adminOnly, async (req, res) => {
   }
 });
 
+// @desc    Get pending companies
+// @route   GET /api/admin/companies/pending
+// @access  Private/Admin
+router.get('/companies/pending', protect, adminOnly, async (req, res) => {
+  try {
+    const pendingCompanies = await User.find({
+      role: 'employer',
+      approvalStatus: 'pending'
+    }).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: pendingCompanies.length,
+      data: pendingCompanies
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch pending companies',
+      error: error.message
+    });
+  }
+});
+
+// @desc    Approve or reject company
+// @route   PUT /api/admin/companies/:id/approve
+// @access  Private/Admin
+router.put('/companies/:id/approve', protect, adminOnly, async (req, res) => {
+  try {
+    const { status } = req.body; // 'approved' or 'rejected'
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status'
+      });
+    }
+
+    const company = await User.findOne({ _id: req.params.id, role: 'employer' });
+
+    if (!company) {
+      return res.status(404).json({
+        success: false,
+        message: 'Company not found'
+      });
+    }
+
+    // --- REJECTED: permanently delete the company ---
+    if (status === 'rejected') {
+      // Delete uploaded legal documents from Cloudinary
+      if (company.legalDocuments && company.legalDocuments.length > 0) {
+        const cloudinary = require('../config/cloudinary');
+        await Promise.allSettled(
+          company.legalDocuments.map(doc =>
+            cloudinary.uploader.destroy(doc.publicId, { resource_type: 'raw' })
+          )
+        );
+      }
+
+      await company.deleteOne();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Company registration rejected and removed from the system'
+      });
+    }
+
+    // --- APPROVED: generate token and send verification email ---
+    company.approvalStatus = 'approved';
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    company.verificationToken = verificationToken;
+
+    const emailHtml = companyVerificationEmail(
+      company.companyName,
+      `http://localhost:5000/api/auth/verify-company/${verificationToken}`
+    );
+
+    await sendEmail({
+      to: company.email,
+      subject: 'HireMate - Company Account Approved',
+      html: emailHtml
+    });
+
+    await company.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Company approved. Verification email sent.',
+      data: company
+    });
+  } catch (error) {
+    console.error('Error approving company:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to approve/reject company',
+      error: error.message
+    });
+  }
+});
+
 // @desc    Delete user
 // @route   DELETE /api/admin/users/:id
 // @access  Private/Admin
@@ -509,6 +613,70 @@ router.get('/logs', protect, adminOnly, async (req, res) => {
       error: error.message
     });
   }
+});
+
+// @desc    Proxy a company legal document through the server
+// @route   GET /api/admin/proxy-document
+// @access  Private/Admin
+router.get('/proxy-document', protect, adminOnly, (req, res) => {
+  const { url } = req.query;
+
+  if (!url) {
+    return res.status(400).json({ success: false, message: 'No URL provided' });
+  }
+
+  // Only allow Cloudinary URLs
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return res.status(400).json({ success: false, message: 'Invalid URL' });
+  }
+
+  if (!parsedUrl.hostname.includes('cloudinary.com')) {
+    return res.status(403).json({ success: false, message: 'Only Cloudinary URLs are allowed' });
+  }
+
+  // Detect OLD uploads stored as image/upload with .pdf extension
+  // These are blocked by Cloudinary's PDF delivery restriction and cannot be served.
+  // New uploads use raw/upload which are always publicly accessible.
+  const isOldBlockedPdf =
+    parsedUrl.pathname.includes('/image/upload/') &&
+    parsedUrl.pathname.toLowerCase().endsWith('.pdf');
+
+  if (isOldBlockedPdf) {
+    return res.status(410).send(`
+      <html><body style="font-family:sans-serif;padding:2rem;color:#374151">
+        <h2 style="color:#dc2626">Document Unavailable</h2>
+        <p>This PDF was uploaded before a system fix and cannot be served due to a Cloudinary delivery restriction.</p>
+        <p><strong>Action required:</strong> Reject this company and ask them to re-register — the new upload system stores documents correctly.</p>
+      </body></html>
+    `);
+  }
+
+  // New raw/upload documents — pipe them directly (publicly accessible, no auth needed)
+  const protocol = parsedUrl.protocol === 'https:' ? https : http;
+
+  const request = protocol.get(url, (upstream) => {
+    const contentType = upstream.headers['content-type'] || 'application/octet-stream';
+    res.setHeader('Content-Type', contentType);
+    res.setHeader('Content-Disposition', 'inline');
+
+    if (upstream.statusCode !== 200) {
+      console.warn(`[proxy-document] Cloudinary returned ${upstream.statusCode} for: ${url}`);
+      upstream.resume();
+      return res.status(upstream.statusCode || 502).send(
+        `Failed to fetch document (Cloudinary ${upstream.statusCode})`
+      );
+    }
+
+    upstream.pipe(res);
+  });
+
+  request.on('error', (err) => {
+    console.error('[proxy-document] Error:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to fetch document' });
+  });
 });
 
 module.exports = router;

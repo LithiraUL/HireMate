@@ -192,9 +192,51 @@ const jobInvitationEmail = (candidateName, employerName, companyName, jobDetails
   `;
 };
 
+// Company verification email template
+const companyVerificationEmail = (companyName, verificationLink) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #3b82f6; color: white; padding: 20px; text-align: center; }
+        .content { background: #f9fafb; padding: 30px; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Welcome to HireMate!</h1>
+        </div>
+        <div class="content">
+          <p>Dear ${companyName},</p>
+          <p>Your company registration has been approved by the admin. Please click the button below to verify your email and activate your account.</p>
+          
+          <center>
+            <a href="${verificationLink}" class="button">Verify Account</a>
+          </center>
+          
+          <p>If you did not request this, please ignore this email.</p>
+          
+          <p>Best regards,<br/>The HireMate Team</p>
+        </div>
+        <div class="footer">
+          <p>&copy; 2024 HireMate. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 module.exports = {
   sendEmail,
   interviewInvitationEmail,
   interviewStatusEmail,
-  jobInvitationEmail
+  jobInvitationEmail,
+  companyVerificationEmail
 };

@@ -3,6 +3,16 @@ const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const { protect } = require('../middleware/auth');
+const multer = require('multer');
+const cloudinary = require('../config/cloudinary');
+const crypto = require('crypto');
+
+// Configure multer
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+});
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -14,9 +24,9 @@ const generateToken = (id) => {
 // @route   POST /api/auth/register
 // @desc    Register a new user
 // @access  Public
-router.post('/register', async (req, res) => {
+router.post('/register', upload.array('legalDocuments', 5), async (req, res) => {
   try {
-    const { name, email, password, role, companyName, companyAddress, contactNo } = req.body;
+    const { name, email, password, role, companyName, companyAddress, contactNo, officialEmailDomain } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -37,15 +47,39 @@ router.post('/register', async (req, res) => {
 
     // Add employer-specific fields
     if (role === 'employer') {
-      if (!companyName || !companyAddress || !contactNo) {
+      if (!companyName || !companyAddress || !contactNo || !officialEmailDomain) {
         return res.status(400).json({
           success: false,
-          message: 'Company details are required for employers'
+          message: 'Company details and official email domain are required for employers'
         });
       }
       userData.companyName = companyName;
       userData.companyAddress = companyAddress;
       userData.contactNo = contactNo;
+      userData.officialEmailDomain = officialEmailDomain;
+      userData.approvalStatus = 'pending';
+      userData.isActive = false; // Cannot login until approved and verified
+
+      // Handle document uploads
+      if (req.files && req.files.length > 0) {
+        const uploadPromises = req.files.map(file => {
+          return new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                folder: 'hiremate/company_docs',
+                resource_type: 'raw'  // raw = publicly accessible; exempt from Cloudinary PDF delivery restriction
+              },
+              (error, result) => {
+                if (error) reject(error);
+                else resolve({ url: result.secure_url, publicId: result.public_id });
+              }
+            );
+            uploadStream.end(file.buffer);
+          });
+        });
+        
+        userData.legalDocuments = await Promise.all(uploadPromises);
+      }
     }
 
     // Create user
@@ -54,22 +88,23 @@ router.post('/register', async (req, res) => {
     // Generate token
     const token = generateToken(user._id);
 
-    res.status(201).json({
-      success: true,
-      message: 'User registered successfully',
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        ...(user.role === 'employer' && {
-          companyName: user.companyName,
-          companyAddress: user.companyAddress,
-          contactNo: user.contactNo
-        })
-      }
-    });
+      res.status(201).json({
+        success: true,
+        message: role === 'employer' ? 'Registration submitted successfully. Pending admin approval.' : 'User registered successfully',
+        token: role === 'employer' ? null : token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          ...(user.role === 'employer' && {
+            companyName: user.companyName,
+            companyAddress: user.companyAddress,
+            contactNo: user.contactNo,
+            approvalStatus: user.approvalStatus
+          })
+        }
+      });
   } catch (error) {
     console.error('Registration error:', error);
     res.status(500).json({
@@ -116,6 +151,18 @@ router.post('/login', async (req, res) => {
 
     // Check if account is active
     if (!user.isActive) {
+      if (user.role === 'employer' && user.approvalStatus === 'pending') {
+        return res.status(403).json({
+          success: false,
+          message: 'Your company registration is pending admin review. You will receive an email once approved.'
+        });
+      }
+      if (user.role === 'employer' && user.approvalStatus === 'approved') {
+        return res.status(403).json({
+          success: false,
+          message: 'Please click the verification link sent to your official email to activate your account.'
+        });
+      }
       return res.status(403).json({
         success: false,
         message: 'Account is deactivated. Please contact support.'
@@ -166,6 +213,84 @@ router.get('/me', protect, async (req, res) => {
       success: false,
       message: 'Error fetching user data'
     });
+  }
+});
+
+// @route   GET /api/auth/verify-company/:token
+// @desc    Verify company email via link
+// @access  Public
+router.get('/verify-company/:token', async (req, res) => {
+  const FRONTEND = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+  try {
+    const user = await User.findOne({
+      verificationToken: req.params.token,
+      role: 'employer'
+    });
+
+    if (!user) {
+      // Check if a company with this token was already verified (token cleared)
+      // We can't know which company it was, so just send a friendly HTML page
+      return res.status(200).send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Verification - HireMate</title>
+          <meta charset="UTF-8">
+          <meta http-equiv="refresh" content="4;url=${FRONTEND}/login">
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f0f9ff; }
+            .card { background: white; border-radius: 12px; padding: 2.5rem 3rem; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 420px; }
+            .icon { font-size: 3rem; margin-bottom: 1rem; }
+            h2 { color: #1e40af; margin: 0 0 0.75rem; }
+            p { color: #6b7280; line-height: 1.6; }
+            a { color: #3b82f6; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">ℹ️</div>
+            <h2>Link Already Used</h2>
+            <p>This verification link has already been used or has expired.</p>
+            <p>If your account is already active, you can <a href="${FRONTEND}/login">log in here</a>.</p>
+            <p style="font-size:0.85rem; color:#9ca3af">Redirecting in 4 seconds…</p>
+          </div>
+        </body>
+        </html>
+      `);
+    }
+
+    // Activate the account
+    user.isActive = true;
+    user.verificationToken = undefined;
+    await user.save();
+
+    // Redirect to login with success flag
+    return res.redirect(`${FRONTEND}/login?verified=true`);
+
+  } catch (error) {
+    console.error('Verification error:', error);
+    return res.status(500).send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Verification Error - HireMate</title>
+        <style>
+          body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #fff1f2; }
+          .card { background: white; border-radius: 12px; padding: 2.5rem 3rem; text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,0.08); max-width: 420px; }
+          h2 { color: #dc2626; }
+          p { color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div style="font-size:3rem">⚠️</div>
+          <h2>Something went wrong</h2>
+          <p>We couldn't process your verification. Please contact support.</p>
+        </div>
+      </body>
+      </html>
+    `);
   }
 });
 

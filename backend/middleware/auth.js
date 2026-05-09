@@ -7,6 +7,9 @@ exports.protect = async (req, res, next) => {
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.query.token) {
+    // Allow token via query string for direct browser links (e.g. document proxy)
+    token = req.query.token;
   }
 
   if (!token) {

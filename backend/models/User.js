@@ -73,6 +73,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  officialEmailDomain: {
+    type: String,
+    trim: true
+  },
+  legalDocuments: [{
+    url: String,
+    publicId: String
+  }],
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending' // Only relevant for employers
+  },
+  verificationToken: {
+    type: String
+  },
   // Common fields
   profileImage: {
     type: String

@@ -17,6 +17,9 @@ export interface User {
   companyName?: string;
   companyAddress?: string;
   contactNo?: string;
+  officialEmailDomain?: string;
+  legalDocuments?: { url: string; publicId: string }[];
+  approvalStatus?: 'pending' | 'approved' | 'rejected';
   
   // Common fields
   profileImage?: string;

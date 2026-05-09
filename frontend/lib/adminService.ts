@@ -61,6 +61,16 @@ export const getAllUsers = async (): Promise<User[]> => {
   return response.data.data;
 };
 
+export const getPendingCompanies = async (): Promise<User[]> => {
+  const response = await api.get('/admin/companies/pending');
+  return response.data.data;
+};
+
+export const approveCompany = async (companyId: string, status: 'approved' | 'rejected'): Promise<User> => {
+  const response = await api.put(`/admin/companies/${companyId}/approve`, { status });
+  return response.data.data;
+};
+
 export const getUserById = async (userId: string): Promise<User> => {
   const response = await api.get(`/admin/users/${userId}`);
   return response.data.data;
@@ -135,6 +145,8 @@ const adminService = {
   
   // Users
   getAllUsers,
+  getPendingCompanies,
+  approveCompany,
   getUserById,
   toggleUserStatus,
   deleteUser,

@@ -2,16 +2,13 @@ import api from './api';
 import { AuthResponse, User } from '@/types';
 
 export const authService = {
-  async register(data: {
-    name: string;
-    email: string;
-    password: string;
-    role: 'candidate' | 'employer';
-    companyName?: string;
-    companyAddress?: string;
-    contactNo?: string;
-  }): Promise<AuthResponse> {
-    const response = await api.post('/auth/register', data);
+  async register(data: FormData | Record<string, any>): Promise<AuthResponse> {
+    const isFormData = data instanceof FormData;
+    const response = await api.post('/auth/register', data, {
+      headers: isFormData
+        ? { 'Content-Type': 'multipart/form-data' }
+        : { 'Content-Type': 'application/json' },
+    });
     return response.data;
   },
 
