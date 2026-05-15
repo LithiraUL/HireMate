@@ -61,7 +61,7 @@ const JobCard: React.FC<JobCardProps> = ({
       <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
         <div className="flex items-center">
           <FiBriefcase className="mr-2" />
-          <span className="capitalize">{job.jobType}</span>
+          <span className="capitalize">{job.jobType || job.employmentType || 'Not specified'}</span>
         </div>
         <div className="flex items-center">
           <FiMapPin className="mr-2" />
@@ -69,7 +69,7 @@ const JobCard: React.FC<JobCardProps> = ({
         </div>
         <div className="flex items-center">
           <FiClock className="mr-2" />
-          <span>{job.experienceRequired}+ years exp</span>
+          <span>{job.experienceRequired} years exp</span>
         </div>
         {job.salaryRange && (
           <div className="flex items-center">

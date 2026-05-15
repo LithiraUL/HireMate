@@ -39,6 +39,6 @@ export const candidateService = {
 
   async updateProfile(data: Partial<Candidate>): Promise<Candidate> {
     const response = await api.put('/users/profile', data);
-    return response.data;
+    return response.data.user || response.data;
   },
 };

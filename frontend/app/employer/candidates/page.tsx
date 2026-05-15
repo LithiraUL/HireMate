@@ -24,6 +24,12 @@ export default function EmployerCandidates() {
   const [positionTitle, setPositionTitle] = useState<string>('');
   const [invitationMessage, setInvitationMessage] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // AI Recommendations State
+  const [aiRecommendationJobId, setAiRecommendationJobId] = useState<string>('');
+  const [recommendedCandidates, setRecommendedCandidates] = useState<any[]>([]);
+  const [aiLoading, setAiLoading] = useState(false);
+
   const [filters, setFilters] = useState<FilterCriteria>({
     employmentType: undefined,
     workMode: undefined,
@@ -139,6 +145,25 @@ export default function EmployerCandidates() {
     }
   };
 
+  const fetchRecommendations = async (jobId: string) => {
+    setAiRecommendationJobId(jobId);
+    if (!jobId) {
+      setRecommendedCandidates([]);
+      return;
+    }
+    
+    setAiLoading(true);
+    try {
+      const data = await jobService.getCompatibleCandidates(jobId);
+      setRecommendedCandidates(data.candidates || []);
+    } catch (error) {
+      console.error('Error fetching recommendations:', error);
+      alert('Failed to load AI recommendations.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (authLoading || loading) {
     return <Loading fullScreen />;
   }
@@ -162,6 +187,110 @@ export default function EmployerCandidates() {
               To manage existing applicants, visit the <a href="/employer/jobs" className="underline font-medium">My Jobs</a> page.
             </p>
           </div>
+        </div>
+
+        {/* AI Recommendations */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8 border-l-4 border-indigo-500">
+          <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+             ✨ AI Talent Recommendations
+          </h2>
+          <p className="text-gray-600 mb-4 text-sm">
+            Select an open position below to instantly see candidates ranked by their compatibility score based on skills, preferences, and age.
+          </p>
+          <div className="flex gap-4">
+            <select
+              value={aiRecommendationJobId}
+              onChange={(e) => fetchRecommendations(e.target.value)}
+              className="input-field max-w-md"
+            >
+              <option value="">Select a job to see recommended candidates...</option>
+              {jobs.map(job => (
+                <option key={job._id} value={job._id}>{job.title}</option>
+              ))}
+            </select>
+          </div>
+          
+          {aiLoading && <div className="mt-4 py-4 text-center text-indigo-600 font-medium">Analyzing candidate pool...</div>}
+          
+          {!aiLoading && recommendedCandidates.length > 0 && (
+             <div className="mt-6 overflow-x-auto border border-gray-200 rounded-lg">
+               <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Candidate Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Compatibility</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Links</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {recommendedCandidates.map((c, index) => (
+                      <React.Fragment key={c._id}>
+                        <tr className={index < 3 ? 'bg-indigo-50/30' : 'hover:bg-gray-50'}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                             <span className={`font-bold ${index === 0 ? 'text-yellow-500 text-lg' : index === 1 ? 'text-gray-400 text-lg' : index === 2 ? 'text-amber-600 text-lg' : 'text-gray-500'}`}>
+                               #{index + 1}
+                             </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="font-medium text-gray-900">{c.name}</div>
+                            <div className="text-xs text-gray-500">{c.email}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                             <div className="flex items-center">
+                               <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2 w-24">
+                                 <div className={`h-2.5 rounded-full ${c.compatibilityScore >= 80 ? 'bg-green-500' : c.compatibilityScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'}`} style={{ width: `${c.compatibilityScore}%` }}></div>
+                               </div>
+                               <span className={`text-sm font-bold ${c.compatibilityScore >= 80 ? 'text-green-600' : c.compatibilityScore >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>{c.compatibilityScore}%</span>
+                             </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-medium">
+                            <div className="flex gap-3">
+                              {c.cvUrl && <a href={c.cvUrl} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-900 flex items-center gap-1">📄 CV</a>}
+                              {c.githubUrl && <a href={c.githubUrl} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-900 flex items-center gap-1">💻 GitHub</a>}
+                              {c.linkedinUrl && <a href={c.linkedinUrl} target="_blank" rel="noopener noreferrer" className="hover:text-indigo-900 flex items-center gap-1">🔗 LinkedIn</a>}
+                              {!c.cvUrl && !c.githubUrl && !c.linkedinUrl && <span className="text-gray-400 italic">No links</span>}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <button 
+                              onClick={() => { 
+                                setSelectedCandidate(c); 
+                                setShowInviteModal(true); 
+                                setSelectedJobId(aiRecommendationJobId); 
+                                setPositionTitle(jobs.find(j => j._id === aiRecommendationJobId)?.title || ''); 
+                              }} 
+                              className="text-white bg-indigo-600 hover:bg-indigo-700 px-3 py-1.5 rounded text-xs font-semibold shadow-sm transition-colors"
+                            >
+                              Invite to Apply
+                            </button>
+                          </td>
+                        </tr>
+                        {c.aiExplanation && (
+                          <tr className="bg-indigo-50/10 border-b border-gray-100">
+                            <td colSpan={5} className="px-6 py-3">
+                              <div className="flex items-start gap-2">
+                                <span className="text-indigo-600 mt-0.5">🤖</span>
+                                <p className="text-sm text-gray-700 italic">
+                                  "{c.aiExplanation}"
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+               </table>
+             </div>
+          )}
+          
+          {!aiLoading && aiRecommendationJobId && recommendedCandidates.length === 0 && (
+            <div className="mt-4 py-6 text-center bg-gray-50 rounded-lg text-gray-500 border border-dashed border-gray-300">
+              No candidates found matching the criteria for this position.
+            </div>
+          )}
         </div>
 
         {/* Search and Filters */}

@@ -34,4 +34,9 @@ export const jobService = {
   async sendJobInvitation(jobId: string, candidateId: string, positionTitle: string, message?: string): Promise<void> {
     await api.post(`/jobs/${jobId}/invite`, { candidateId, positionTitle, message });
   },
+
+  async getCompatibleCandidates(jobId: string, page = 1, limit = 20): Promise<{ candidates: any[], total: number, pages: number }> {
+    const response = await api.get(`/jobs/${jobId}/compatible-candidates?page=${page}&limit=${limit}`);
+    return response.data;
+  },
 };
