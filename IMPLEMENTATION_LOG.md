@@ -11,6 +11,46 @@ HireMate Recruitment Management System now has **100% Phase 1 functionality** wi
 
 ---
 
+## 🚀 Phase 2 Features Implemented
+
+### **🆕 AI-Driven Recruitment Engine** ✅
+1. **Gemini AI Integration** (`cvParserService.js`, `rankingExplanationService.js`)
+   - Implemented automated CV parsing for skills, experience, and education.
+   - Built qualitative AI ranking explanations for employers.
+2. **Text Extraction Pipeline** (`cvTextExtractor.js`)
+   - Capable of decoding Cloudinary PDFs or raw Multer buffers.
+3. **Enhanced Compatibility Engine** (`compatibilityEngine.js`)
+   - Multi-vector scoring algorithm combining manually entered preferences with AI-extracted facts.
+4. **Resiliency & Logging** (`SystemLog.js`, `aiCircuitBreaker.js`)
+   - Database-backed system logs and a 5-minute circuit breaker to prevent cascading API failures.
+
+---
+
+## 📝 Recent Bug Fixes & Refinements
+
+### **Document Handling & Proxy System** ✅
+- Fixed Cloudinary 401 Unauthorized errors for PDF uploads by creating a secure backend proxy endpoint (`GET /api/admin/proxy-document`).
+- Updated upload logic to explicitly use `resource_type: 'raw'` for PDFs to guarantee public access.
+- Implemented "hard delete" functionality for rejected companies, completely removing their records and associated Cloudinary assets for clean data management.
+
+### **Form Validations** ✅
+- Completely rewrote `frontend/app/register/page.tsx` and `frontend/app/login/page.tsx`.
+- Added comprehensive real-time inline validation (on `blur` and `change`).
+- Implemented strong password constraints and color-coded input feedback for a professional UX.
+
+### **Skill Normalization System** ✅
+- Created `backend/utils/skillNormalizer.js` to standardize skill inputs across the platform.
+- Implemented alias mapping (e.g., `js` -> `JavaScript`, `reactjs` -> `React`) and Title Case formatting.
+- Integrated normalizer directly into Mongoose schema setters for `User.js` (candidate skills) and `Job.js` (required skills) to guarantee database consistency.
+- Updated search endpoints (`userRoutes.js`, `jobRoutes.js`, `applicationRoutes.js`) to normalize search queries, ensuring case-insensitive and alias-aware filtering.
+
+### **UI/UX Tweaks** ✅
+- **Candidates Page**: Re-positioned the candidate's age in `CandidateCard.tsx` inline with their email to prevent overlap from the "Invite to apply" mail button.
+- **Jobs Page**: Fixed an empty briefcase icon mapping by falling back to `employmentType` when `jobType` is absent. Removed the hardcoded `+` sign from the requested experience string.
+- **Email Verification**: Enhanced the `/verify-company/:token` endpoint to smoothly redirect to the login page with a friendly HTML error screen for already-used/expired links, rather than raw JSON.
+
+---
+
 ## 📝 Latest Features Implemented (Final Update)
 
 ### **🆕 Interview Scheduling System** ✅
@@ -341,6 +381,7 @@ HireMate Recruitment Management System now has **100% Phase 1 functionality** wi
 **Root Documentation:**
 - **README.md** - Main project overview and quick start
 - **PHASE1_COMPLETION_REPORT.md** - Comprehensive Phase 1 completion report
+- **PHASE2_COMPLETION_REPORT.md** - Comprehensive Phase 2 AI implementation report
 - **FILE_STRUCTURE.md** - Complete file structure reference
 - **IMPLEMENTATION_LOG.md** - This file - implementation history
 - **LICENSE** - All Rights Reserved (Proprietary)

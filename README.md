@@ -15,7 +15,10 @@ HireMate is a comprehensive recruitment management system designed for Small and
 ### ✨ Key Features
 
 - 🔐 **Role-Based Authentication** (Candidate, Employer, Admin)
-- 📝 **Smart Job Posting & Browsing** with advanced filtering
+- 🤖 **AI-Driven Recruitment Engine** (Gemini 1.5 Flash integration)
+- 📝 **Smart CV Parsing** (Automated skill, experience & education extraction)
+- 🎯 **Intelligent Match Scoring** (Multi-vector candidate/job compatibility algorithm)
+- 🧠 **AI HR Summaries** (Natural language candidate ranking explanations)
 - 📄 **CV Upload & Management** (Cloudinary integration)
 - 📧 **Automated Email Notifications** (NodeMailer with HTML templates)
 - 📊 **Analytics Dashboard** (Hiring trends, time-to-hire metrics)
@@ -98,6 +101,10 @@ HireMate/
 │   │   ├── analyticsRoutes.js   # Hiring analytics
 │   │   └── adminRoutes.js   # Admin operations
 │   │
+│   ├── services/             # Business Logic
+│   │   ├── ai/              # AI Services (Gemini integration, Circuit Breaker)
+│   │   └── compatibilityEngine.js # Multi-vector scoring algorithm
+│   │
 │   ├── middleware/           # Express middleware
 │   │   └── auth.js          # JWT authentication & authorization
 │   │
@@ -121,6 +128,7 @@ HireMate/
 - MongoDB (local or Atlas)
 - Cloudinary account
 - Gmail account
+- **Google Gemini API Key** (Required for Phase 2 AI functionality)
 
 ### 1. Backend Setup
 
@@ -128,7 +136,7 @@ HireMate/
 cd backend
 npm install
 
-# Configure .env file with MongoDB, JWT, Cloudinary, Gmail credentials
+# Configure .env file with MongoDB, JWT, Cloudinary, Gmail credentials, and GEMINI_API_KEY
 npm run dev
 ```
 
@@ -173,6 +181,7 @@ Frontend runs on: **http://localhost:3001**
 
 **Frontend**: Next.js 14 • TypeScript • Tailwind CSS • Axios • Recharts (Analytics)  
 **Backend**: Node.js • Express • MongoDB • Mongoose • JWT  
+**AI Services**: Google Gemini 1.5 Flash • pdf-parse  
 **Integrations**: Cloudinary (CV Storage) • NodeMailer (Gmail SMTP)  
 **DevOps**: Git • GitHub  
 
@@ -191,18 +200,21 @@ Frontend runs on: **http://localhost:3001**
 | Backend - Interview Service | ✅ Complete (Scheduling, Confirmation, Email Notifications) |
 | Backend - Analytics Service | ✅ Complete (Hiring Trends, Time-to-Hire, Demographics) |
 | Backend - Admin Service | ✅ Complete (User Management, Job Moderation, System Stats, Logs) |
+| Backend - AI Services (Phase 2) | ✅ Complete (Gemini CV Parsing, Compatibility Scoring, Circuit Breaker) |
 | Email Notifications | ✅ Complete (Interview Invites, Status Updates, Job Invitations) |
-| CV Upload (Cloudinary) | ✅ Complete (Image & PDF support) |
+| CV Upload (Cloudinary) | ✅ Complete (Image & PDF support with AI text extraction) |
 | Salary Management | ✅ Complete (Min/Max range with currency) |
 | Post-Login Redirect | ✅ Complete (Role-based routing, preserved URLs) |
 
-**Total**: 13 pages + 7 public pages, 40+ API endpoints, production-ready! 🚀
+**Total**: 13 pages + 7 public pages, 45+ API endpoints, AI integrated, production-ready! 🚀
 
 ---
 
 ## 📖 Documentation
 
 
+- **[PHASE1_COMPLETION_REPORT.md](./PHASE1_COMPLETION_REPORT.md)** - Phase 1 architecture & system logic
+- **[PHASE2_COMPLETION_REPORT.md](./PHASE2_COMPLETION_REPORT.md)** - Phase 2 AI & Recommendation engine summary
 - **[frontend/README.md](./frontend/README.md)** - Frontend guide
 - **[backend/README.md](./backend/README.md)** - API documentation
 
@@ -225,4 +237,4 @@ This project is proprietary software developed for academic purposes. Unauthoriz
 
 ---
 
-**Built with ❤️ for efficient recruitment management**
+**Built for efficient recruitment management**

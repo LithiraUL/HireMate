@@ -100,6 +100,32 @@ All Phase 1 functional requirements from the SRS document have been successfully
 
 ---
 
+### 3. Recent Bug Fixes & System Refinements
+
+#### Document Handling & Proxy System
+- Fixed Cloudinary 401 Unauthorized errors for PDF uploads by creating a secure backend proxy endpoint (`GET /api/admin/proxy-document`).
+- Updated upload logic to explicitly use `resource_type: 'raw'` for PDFs to guarantee public access.
+- Implemented "hard delete" functionality for rejected companies, completely removing their records and associated Cloudinary assets for clean data management.
+
+#### Form Validations & State Handling
+- Completely rewrote `frontend/app/register/page.tsx` and `frontend/app/login/page.tsx`.
+- Added comprehensive real-time inline validation (on `blur` and `change`) with color-coded feedback.
+- Implemented strong password constraints for a professional UX.
+- Fixed a state handling bug in `candidateService.updateProfile` to correctly update the global authentication state without destroying the user session upon candidate profile updates.
+
+#### Skill Normalization System
+- Created `backend/utils/skillNormalizer.js` to standardize skill inputs across the platform.
+- Implemented alias mapping (e.g., `js` -> `JavaScript`, `reactjs` -> `React`) and Title Case formatting.
+- Integrated normalizer directly into Mongoose schema setters for `User.js` (candidate skills) and `Job.js` (required skills) to guarantee database consistency.
+- Updated search endpoints to normalize search queries, ensuring case-insensitive and alias-aware filtering.
+
+#### UI/UX Tweaks
+- **Candidates Page**: Re-positioned the candidate's age inline with their email to prevent overlap from the "Invite to apply" mail button.
+- **Jobs Page**: Fixed an empty briefcase icon mapping by falling back to `employmentType` when `jobType` is absent. Removed the hardcoded `+` sign from the requested experience string.
+- **Email Verification**: Enhanced the `/verify-company/:token` endpoint to smoothly redirect to the login page with a friendly HTML error screen for already-used/expired links, rather than raw JSON.
+
+---
+
 ## 📊 Complete Phase 1 Feature Set
 
 ### User Authentication & Management (FR-1.x) ✅
@@ -246,10 +272,11 @@ Not implemented (intentional):
 1. **Complete Interview System**: Employers can schedule interviews, candidates receive emails with meeting links
 2. **Comprehensive Analytics**: Visual insights into hiring trends, time-to-hire, and applicant demographics
 3. **Production-Grade Security**: JWT, bcrypt, RBAC, input validation
-4. **Professional UI/UX**: Responsive design, intuitive navigation, real-time feedback
-5. **Scalable Architecture**: Modular routes, service layer, type safety with TypeScript
-6. **Email Integration**: NodeMailer for interviews, contact form, notifications
-7. **File Management**: Cloudinary for CV uploads with PDF support
+4. **Professional UI/UX**: Responsive design, intuitive navigation, real-time feedback, and inline validation
+5. **Robust Data Consistency**: Centralized skill normalization integrated directly at the Mongoose schema level
+6. **Scalable Architecture**: Modular routes, service layer, type safety with TypeScript
+7. **Email Integration**: NodeMailer for interviews, contact form, notifications
+8. **File Management**: Cloudinary for CV uploads with PDF support and secure admin proxy handling
 
 ---
 

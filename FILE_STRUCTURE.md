@@ -1,10 +1,48 @@
 # HireMate - Complete File Structure
 
-**Last Updated**: January 2025  
+**Last Updated**: May 14, 2026  
 **Status**: Phase 1 Complete (100%)
 
 ```
 HireMate/
+│
+├── 📁 backend/                               # Node.js Express Server
+│   ├── 📁 config/                            # Configurations
+│   │   ├── 📄 cloudinary.js                  # Cloudinary setup
+│   │   └── 📄 nodemailer.js                  # Email setup
+│   ├── 📁 controllers/                       # API Controllers
+│   │   └── 📄 aiController.js                # Manual CV reprocessing
+│   ├── 📁 middleware/                        # Express middlewares
+│   │   └── 📄 auth.js                        # JWT & RBAC middleware
+│   ├── 📁 models/                            # Mongoose Schemas
+│   │   ├── 📄 Application.js
+│   │   ├── 📄 Interview.js
+│   │   ├── 📄 Job.js
+│   │   ├── 📄 SystemLog.js                   # 🆕 AI & Error logging
+│   │   └── 📄 User.js
+│   ├── 📁 routes/                            # API Routes
+│   │   ├── 📄 adminRoutes.js
+│   │   ├── 📄 analyticsRoutes.js
+│   │   ├── 📄 applicationRoutes.js
+│   │   ├── 📄 authRoutes.js
+│   │   ├── 📄 contactRoutes.js
+│   │   ├── 📄 interviewRoutes.js
+│   │   ├── 📄 jobRoutes.js
+│   │   └── 📄 userRoutes.js
+│   ├── 📁 services/                          # Business Logic
+│   │   ├── 📁 ai/                            # 🆕 AI Services
+│   │   │   ├── 📄 aiCircuitBreaker.js        # Global Gemini kill-switch
+│   │   │   ├── 📄 cvParserService.js         # CV parsing with Gemini
+│   │   │   ├── 📄 rankingExplanationService.js # AI HR summaries
+│   │   │   └── 📄 skillExtractionService.js  # Skill normalization AI wrapper
+│   │   └── 📄 compatibilityEngine.js         # Master scoring algorithm
+│   ├── 📁 utils/                             # Utilities
+│   │   ├── 📄 cvTextExtractor.js             # 🆕 Cloudinary & PDF text decoder
+│   │   ├── 📄 logger.js                      # 🆕 MongoDB fire-and-forget logger
+│   │   └── 📄 skillNormalizer.js             # Skill string normalizer
+│   ├── 📄 package.json                       # Dependencies & scripts
+│   ├── 📄 server.js                          # Express app entry point
+│   └── 📄 README.md                          # Backend documentation
 │
 ├── 📁 frontend/                              # Next.js Frontend Application
 │   ├── 📁 app/                               # Next.js App Router
@@ -102,6 +140,8 @@ HireMate/
 ├── 📄 IMPLEMENTATION_SUMMARY.md              # ✅ Complete feature list
 ├── 📄 COMMANDS.md                            # 💻 Developer commands
 ├── 📄 PROJECT_STATUS.md                      # 🎉 Project completion status
+├── 📄 PHASE1_COMPLETION_REPORT.md            # Phase 1 Summary
+├── 📄 PHASE2_COMPLETION_REPORT.md            # 🆕 Phase 2 AI Summary
 └── 📄 FILE_STRUCTURE.md                      # 📁 This file
 
 ```
@@ -112,14 +152,17 @@ HireMate/
 
 | Category | Count | Description |
 |----------|-------|-------------|
-| **Pages** | 12 | All application routes |
+| **Pages** | 12 | All frontend application routes |
 | **Components** | 6 | Reusable UI components |
 | **Services** | 5 | API integration services |
+| **Backend Routes**| 8 | Express API route handlers |
+| **Backend Models**| 4 | Mongoose database schemas |
+| **Config/Utils** | 4 | Backend configurations and utilities |
 | **Context** | 1 | State management |
 | **Types** | 1 | TypeScript definitions |
-| **Config** | 7 | Project configuration |
-| **Documentation** | 5 | Guides and docs |
-| **TOTAL** | 37 | Production files |
+| **Config** | 8 | Project configuration |
+| **Documentation** | 6 | Guides and docs |
+| **TOTAL** | 55 | Production files |
 
 ---
 
@@ -181,6 +224,14 @@ TypeScript interfaces and type definitions.
 - Job, Application, Interview
 - AuthResponse, FilterCriteria
 - ValidationReport (AI Phase 2)
+
+### Backend Directories
+- `/backend/routes` - API endpoint definitions for all domains
+- `/backend/models` - Mongoose database schemas
+- `/backend/controllers` - Business logic handlers (if separated from routes)
+- `/backend/middleware` - Auth verification and RBAC
+- `/backend/config` - Nodemailer, Cloudinary, Database setup
+- `/backend/utils` - Helper functions like `skillNormalizer.js`
 
 ### Root Configuration Files
 
@@ -344,12 +395,15 @@ HireMate/
 
 | Directory | Estimated LOC |
 |-----------|---------------|
-| `/app` | ~3,500 |
-| `/components` | ~1,200 |
-| `/lib` | ~600 |
-| `/types` | ~200 |
-| `/context` | ~100 |
-| **Total** | **~6,500** |
+| `frontend/app` | ~3,500 |
+| `frontend/components` | ~1,200 |
+| `frontend/lib` | ~600 |
+| `frontend/types` | ~200 |
+| `frontend/context` | ~100 |
+| `backend/routes` | ~1,000 |
+| `backend/models` | ~500 |
+| `backend/utils & config` | ~300 |
+| **Total** | **~7,400** |
 
 ---
 
@@ -420,7 +474,7 @@ This file structure follows:
 
 ---
 
-**Total Files**: 37  
-**Total Directories**: 15  
+**Total Files**: 55  
+**Total Directories**: 21  
 **Code Quality**: Production-Ready ⭐⭐⭐⭐⭐  
 **Organization**: Excellent 📁
