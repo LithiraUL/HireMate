@@ -4,6 +4,7 @@ const Job = require('../models/Job');
 const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const { sendEmail, jobInvitationEmail } = require('../config/nodemailer');
+const { getCompatibleCandidates } = require('../controllers/recommendationController');
 
 // @route   POST /api/jobs
 // @desc    Create a new job posting
@@ -23,12 +24,18 @@ router.post('/', protect, authorize('employer'), async (req, res) => {
       ageRange
     } = req.body;
 
+    let normalizedSkills = requiredSkills;
+    if (requiredSkills) {
+      const { normalizeSkillsArray } = require('../utils/skillNormalizer');
+      normalizedSkills = normalizeSkillsArray(requiredSkills);
+    }
+
     const job = await Job.create({
       employer: req.user.id,
       companyName: req.user.companyName,
       title,
       description,
-      requiredSkills,
+      requiredSkills: normalizedSkills,
       experienceRequired,
       employmentType: employmentType || jobType,
       workMode,
@@ -76,7 +83,8 @@ router.get('/', async (req, res) => {
     else filter.status = 'open'; // Default to open jobs
 
     if (skills) {
-      const skillsArray = skills.split(',').map(s => s.trim());
+      const { normalizeSkillsArray } = require('../utils/skillNormalizer');
+      const skillsArray = normalizeSkillsArray(skills.split(','));
       filter.requiredSkills = { $in: skillsArray };
     }
 
@@ -183,6 +191,11 @@ router.put('/:id', protect, authorize('employer'), async (req, res) => {
         success: false,
         message: 'Not authorized to update this job'
       });
+    }
+
+    if (req.body.requiredSkills) {
+      const { normalizeSkillsArray } = require('../utils/skillNormalizer');
+      req.body.requiredSkills = normalizeSkillsArray(req.body.requiredSkills);
     }
 
     job = await Job.findByIdAndUpdate(req.params.id, req.body, {
@@ -317,5 +330,15 @@ router.post('/:jobId/invite', protect, authorize('employer'), async (req, res) =
     });
   }
 });
+
+// @route   GET /api/jobs/:jobId/compatible-candidates
+// @desc    Get ranked list of compatible candidates for a job
+// @access  Private (Employer only)
+router.get(
+  '/:jobId/compatible-candidates',
+  protect,
+  authorize('employer'),
+  getCompatibleCandidates
+);
 
 module.exports = router;

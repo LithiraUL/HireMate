@@ -21,7 +21,8 @@ const jobSchema = new mongoose.Schema({
   },
   requiredSkills: [{
     type: String,
-    trim: true
+    trim: true,
+    set: v => require('../utils/skillNormalizer').normalizeSkill(v)
   }],
   experienceRequired: {
     type: Number,
@@ -88,5 +89,10 @@ const jobSchema = new mongoose.Schema({
 jobSchema.index({ title: 'text', description: 'text' });
 jobSchema.index({ employer: 1, status: 1 });
 jobSchema.index({ status: 1, createdAt: -1 });
+
+// Additional performance indexes
+jobSchema.index({ employer: 1 });
+jobSchema.index({ status: 1 });
+jobSchema.index({ requiredSkills: 1 });
 
 module.exports = mongoose.model('Job', jobSchema);

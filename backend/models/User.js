@@ -34,8 +34,26 @@ const userSchema = new mongoose.Schema({
   },
   skills: [{
     type: String,
+    trim: true,
+    set: v => require('../utils/skillNormalizer').normalizeSkill(v)
+  }],
+  extractedSkills: [{
+    type: String,
     trim: true
   }],
+  experienceYears: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  educationLevel: {
+    type: String,
+    trim: true
+  },
+  aiSummary: {
+    type: String,
+    trim: true
+  },
   cvUrl: {
     type: String
   },
@@ -135,5 +153,10 @@ userSchema.methods.toJSON = function() {
   delete obj.password;
   return obj;
 };
+
+// Indexes for performance
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ skills: 1 });
+userSchema.index({ age: 1 });
 
 module.exports = mongoose.model('User', userSchema);

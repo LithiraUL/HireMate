@@ -141,7 +141,8 @@ router.get('/employer/applicants', protect, authorize('employer'), async (req, r
 
     // Apply additional filters
     if (skills) {
-      const skillsArray = skills.split(',').map(s => s.trim());
+      const { normalizeSkillsArray } = require('../utils/skillNormalizer');
+      const skillsArray = normalizeSkillsArray(skills.split(','));
       applicants = applicants.filter(candidate => 
         candidate.skills && candidate.skills.some(skill => 
           skillsArray.some(filterSkill => 

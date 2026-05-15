@@ -17,6 +17,8 @@
   "author": "HireMate Team",
   "license": "ISC",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.16.1",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
@@ -24,10 +26,12 @@
     "express": "^4.22.1",
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.12.0",
     "mongoose": "^8.20.1",
     "morgan": "^1.10.0",
     "multer": "^1.4.5-lts.1",
-    "nodemailer": "^6.10.1"
+    "nodemailer": "^6.10.1",
+    "pdf-parse": "^2.4.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

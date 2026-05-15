@@ -4,6 +4,8 @@ const User = require('../models/User');
 const { protect, authorize } = require('../middleware/auth');
 const multer = require('multer');
 const cloudinary = require('../config/cloudinary');
+const { parseCV } = require('../services/ai/cvParserService');
+const { extractTextFromBuffer } = require('../utils/cvTextExtractor');
 
 // Configure multer for file upload
 const storage = multer.memoryStorage();
@@ -58,6 +60,11 @@ router.put('/profile', protect, async (req, res) => {
         updates[key] = req.body[key];
       }
     });
+
+    if (updates.skills) {
+      const { normalizeSkillsArray } = require('../utils/skillNormalizer');
+      updates.skills = normalizeSkillsArray(updates.skills);
+    }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
@@ -117,15 +124,42 @@ router.post('/upload-cv', protect, authorize('candidate'), upload.single('cv'), 
       uploadStream.end(req.file.buffer);
     });
 
-    // Update user CV URL
+    // Extract text from the uploaded file buffer
+    let cvText = '';
+    try {
+      cvText = await extractTextFromBuffer(req.file.buffer, req.file.mimetype, req.file.originalname);
+    } catch (parseError) {
+      console.error('Error extracting text from CV:', parseError);
+    }
+
+    let aiUpdates = {};
+    if (cvText && cvText.trim().length > 50) {
+      try {
+        console.log('Sending CV text to AI service for structured extraction...');
+        const aiData = await parseCV(cvText);
+        aiUpdates = {
+          extractedSkills: aiData.skills || [],
+          experienceYears: aiData.experienceYears || 0,
+          educationLevel: aiData.educationLevel || '',
+          aiSummary: aiData.summary || ''
+        };
+      } catch (aiError) {
+        console.error('AI CV Parsing failed:', aiError.message);
+      }
+    }
+
+    // Update user CV URL and any successfully extracted AI data
     await User.findByIdAndUpdate(req.user.id, {
-      cvUrl: result.secure_url
+      cvUrl: result.secure_url,
+      cvPublicId: result.public_id,
+      ...aiUpdates
     });
 
     res.status(200).json({
       success: true,
-      message: 'CV uploaded successfully',
-      url: result.secure_url
+      message: 'CV uploaded successfully. ' + (Object.keys(aiUpdates).length > 0 ? 'AI successfully extracted candidate profile data.' : 'AI parsing skipped or failed.'),
+      url: result.secure_url,
+      aiData: aiUpdates
     });
   } catch (error) {
     console.error('CV upload error:', error);
@@ -155,7 +189,8 @@ router.get('/search', protect, authorize('employer'), async (req, res) => {
 
     // Filter by skills
     if (skills) {
-      const skillsArray = skills.split(',').map(s => s.trim());
+      const { normalizeSkillsArray } = require('../utils/skillNormalizer');
+      const skillsArray = normalizeSkillsArray(skills.split(','));
       filter.skills = { $in: skillsArray };
     }
 
