@@ -15,6 +15,8 @@ HireMate is a comprehensive recruitment management system designed for Small and
 ### ✨ Key Features
 
 - 🔐 **Role-Based Authentication** (Candidate, Employer, Admin)
+- 🔒 **Secure Password Recovery** (Cryptographically hashed token-based Forgot/Reset recovery flows)
+- 🛡️ **API Abuse Prevention** (Rate-limiting protection on auth endpoints using express-rate-limit)
 - 🤖 **AI-Driven Recruitment Engine** (Local Ollama Llama 3.2:3b model integration)
 - 📝 **Smart CV Parsing** (Automated skill, experience & education extraction via local Ollama)
 - 🎯 **Intelligent Match Scoring** (Multi-vector candidate/job compatibility algorithm)
@@ -57,6 +59,8 @@ HireMate/
 │   │   │
 │   │   ├── login/             # Authentication
 │   │   ├── register/          # User registration
+│   │   ├── forgot-password/   # Submit email for reset link
+│   │   ├── reset-password/    # Reset password with secure token
 │   │   ├── about/             # About page
 │   │   ├── contact/           # Contact form
 │   │   ├── faq/               # FAQ page
@@ -87,13 +91,14 @@ HireMate/
 │
 ├── backend/                   # Express.js backend (✅ Complete)
 │   ├── models/               # Mongoose schemas
-│   │   ├── User.js          # User model (candidate/employer/admin)
+│   │   ├── User.js          # User model (extended with verification & reset tokens)
 │   │   ├── Job.js           # Job posting model
 │   │   ├── Application.js   # Job application model
-│   │   └── Interview.js     # Interview scheduling model
+│   │   ├── Interview.js     # Interview scheduling model
+│   │   └── SystemLog.js     # System logs schema
 │   │
 │   ├── routes/               # API endpoints
-│   │   ├── authRoutes.js    # Auth & registration
+│   │   ├── authRoutes.js    # Auth, register, forgot/reset routes, rate limiting
 │   │   ├── userRoutes.js    # User profile & search
 │   │   ├── jobRoutes.js     # Job CRUD & invitations
 │   │   ├── applicationRoutes.js # Applications & status
@@ -102,8 +107,9 @@ HireMate/
 │   │   └── adminRoutes.js   # Admin operations
 │   │
 │   ├── services/             # Business Logic
-│   │   ├── ai/              # AI Services (DeepSeek integration, Circuit Breaker)
-│   │   └── compatibilityEngine.js # Multi-vector scoring algorithm
+│   │   ├── ai/              # AI Services (Local Ollama, Circuit Breaker)
+│   │   ├── compatibilityEngine.js # Multi-vector scoring algorithm
+│   │   └── evidenceValidator.js # Validation engine
 │   │
 │   ├── middleware/           # Express middleware
 │   │   └── auth.js          # JWT authentication & authorization
@@ -115,8 +121,7 @@ HireMate/
 │   ├── .env                  # Environment variables
 │   └── server.js            # Express server entry
 │
-├── SYSTEM_FLOW_AND_ALGORITHMS.md # 📖 System Flow & Algorithmic Architecture
-├── SYSTEM_COMPLETE.md        # 📖 Full documentation
+├── COMPLETION_AND_STRUCTURE_REPORT.md # 📖 System Architecture, File Structure, & Phase Reports
 └── README.md                 # This file
 ```
 
@@ -181,8 +186,8 @@ Frontend runs on: **http://localhost:3001**
 ## 🔧 Technology Stack
 
 **Frontend**: Next.js 14 • TypeScript • Tailwind CSS • Axios • Recharts (Analytics)  
-**Backend**: Node.js • Express • MongoDB • Mongoose • JWT  
-**AI Services**: DeepSeek via OpenRouter • pdf-parse  
+**Backend**: Node.js • Express • MongoDB • Mongoose • JWT • express-rate-limit  
+**AI Services**: Local Ollama (Llama 3.2:3b) • pdf-parse  
 **Integrations**: Cloudinary (CV Storage) • NodeMailer (Gmail SMTP)  
 **DevOps**: Git • GitHub  
 
@@ -195,14 +200,15 @@ Frontend runs on: **http://localhost:3001**
 | Frontend - Candidate Portal | ✅ Complete (4 pages: Dashboard, Jobs, Applications, Profile) |
 | Frontend - Employer Portal | ✅ Complete (5 pages: Dashboard, Jobs, Post Job, Candidates, Analytics) |
 | Frontend - Admin Portal | ✅ Complete (4 pages: Dashboard, Users, Jobs, Logs) |
-| Frontend - Public Pages | ✅ Complete (Landing, Login, Register, About, Contact, FAQ, Privacy) |
-| Backend - Auth & User Services | ✅ Complete (Login, Register, Profile, Search) |
+| Frontend - Public Pages | ✅ Complete (Landing, Login, Register, Forgot Password, Reset Password, About, Contact, FAQ, Privacy) |
+| Backend - Auth & User Services | ✅ Complete (Login, Register, Profile, Search, rate limiters) |
 | Backend - Job & Application Services | ✅ Complete (CRUD, Invitations, Status Management) |
 | Backend - Interview Service | ✅ Complete (Scheduling, Confirmation, Email Notifications) |
 | Backend - Analytics Service | ✅ Complete (Hiring Trends, Time-to-Hire, Demographics) |
 | Backend - Admin Service | ✅ Complete (User Management, Job Moderation, System Stats, Logs) |
-| Backend - AI Services (Phase 2) | ✅ Complete (DeepSeek CV Parsing, Compatibility Scoring, Circuit Breaker) |
-| Email Notifications | ✅ Complete (Interview Invites, Status Updates, Job Invitations) |
+| Backend - AI Services (Phase 2) | ✅ Complete (Local Ollama CV Parsing, Compatibility Scoring, Circuit Breaker) |
+| Security Features | ✅ Complete (Cryptographic Forgot/Reset Password flows, automatic expired token cleanup, express-rate-limit) |
+| Email Notifications | ✅ Complete (Interview Invites, Status Updates, Job Invitations, Password Reset emails) |
 | CV Upload (Cloudinary) | ✅ Complete (Image & PDF support with AI text extraction) |
 | Salary Management | ✅ Complete (Min/Max range with currency) |
 | Post-Login Redirect | ✅ Complete (Role-based routing, preserved URLs) |
@@ -214,13 +220,9 @@ Frontend runs on: **http://localhost:3001**
 ## 📖 Documentation
 
 
-- **[SYSTEM_FLOW_AND_ALGORITHMS.md](./SYSTEM_FLOW_AND_ALGORITHMS.md)** - 🎯 Core system flows, sequence flowcharts, and mathematical/AI ranking algorithms.
-- **[FILE_STRUCTURE.md](./FILE_STRUCTURE.md)** - 📁 Deep dive into the modular codebase layout, directory maps, dependencies, and file relationships.
-- **[IMPLEMENTATION_LOG.md](./IMPLEMENTATION_LOG.md)** - 📝 Chronological technical log of all features, portal builds, bug fixes, and security metrics implemented.
-- **[PHASE1_COMPLETION_REPORT.md](./PHASE1_COMPLETION_REPORT.md)** - Phase 1 architecture, portal configurations, and core system logic.
-- **[PHASE2_COMPLETION_REPORT.md](./PHASE2_COMPLETION_REPORT.md)** - Phase 2 local AI engine integration, CV parsing, and compatibility engine setup.
-- **[frontend/README.md](./frontend/README.md)** - Frontend client setup, styling rules, and page structure guides.
-- **[backend/README.md](./backend/README.md)** - Backend server APIs, configuration rules, and route endpoint references.
+- **[COMPLETION_AND_STRUCTURE_REPORT.md](./COMPLETION_AND_STRUCTURE_REPORT.md)** - 📁 Unified report detailing modular file structure, Phase 1 milestone logs, and Phase 2 local Ollama AI integration.
+- **[frontend/README.md](./frontend/README.md)** - Frontend client setup, styling guides, and dynamic route instructions.
+- **[backend/README.md](./backend/README.md)** - Backend Express API routes, environment setups, and rate-limiting configurations.
 
 ---
 
