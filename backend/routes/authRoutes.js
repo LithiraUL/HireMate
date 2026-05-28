@@ -6,6 +6,31 @@ const { protect } = require('../middleware/auth');
 const multer = require('multer');
 const cloudinary = require('../config/cloudinary');
 const crypto = require('crypto');
+const rateLimit = require('express-rate-limit');
+const { sendEmail, passwordResetEmail } = require('../config/nodemailer');
+
+// Rate limiters
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // Limit each IP to 20 login requests per window
+  message: {
+    success: false,
+    message: 'Too many login attempts from this IP, please try again after 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 forgot password requests per window
+  message: {
+    success: false,
+    message: 'Too many password reset requests from this IP, please try again after 15 minutes.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Configure multer
 const storage = multer.memoryStorage();
@@ -117,7 +142,7 @@ router.post('/register', upload.array('legalDocuments', 5), async (req, res) => 
 // @route   POST /api/auth/login
 // @desc    Login user
 // @access  Public
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -291,6 +316,147 @@ router.get('/verify-company/:token', async (req, res) => {
       </body>
       </html>
     `);
+  }
+});
+
+// @route   POST /api/auth/forgot-password
+// @desc    Generate password reset token and send email
+// @access  Public
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide an email address'
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    // Mitigate email enumeration: return generic success regardless of user existence
+    const genericResponse = {
+      success: true,
+      message: 'If an account exists, a reset link has been sent.'
+    };
+
+    if (!user) {
+      return res.status(200).json(genericResponse);
+    }
+
+    // Generate secure random reset token
+    const resetToken = crypto.randomBytes(32).toString('hex');
+
+    // Hash token and save to database
+    user.passwordResetToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+    // Set expiration to 15 minutes
+    user.passwordResetExpires = Date.now() + 15 * 60 * 1000;
+
+    await user.save({ validateBeforeSave: false });
+
+    // Construct reset URL
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
+
+    // Send reset email
+    const emailHtml = passwordResetEmail(user.name, resetUrl);
+    await sendEmail({
+      to: user.email,
+      subject: 'HireMate Password Reset Request',
+      html: emailHtml
+    });
+
+    return res.status(200).json(genericResponse);
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error sending password reset email'
+    });
+  }
+});
+
+// @route   POST /api/auth/reset-password/:token
+// @desc    Reset password using token
+// @access  Public
+router.post('/reset-password/:token', async (req, res) => {
+  try {
+    const rawToken = req.params.token;
+    if (!rawToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password reset token is required'
+      });
+    }
+
+    // Hash incoming token to match with stored hash
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(rawToken)
+      .digest('hex');
+
+    // Find user with matching token
+    const user = await User.findOne({
+      passwordResetToken: hashedToken
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired password reset token'
+      });
+    }
+
+    // Check if token has expired
+    if (user.passwordResetExpires < Date.now()) {
+      // Automatically clear expired reset token and save
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired password reset token'
+      });
+    }
+
+    // Update password
+    const { password } = req.body;
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a new password'
+      });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters'
+      });
+    }
+
+    user.password = password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+
+    await user.save(); // This will trigger pre('save') bcrypt hashing middleware
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been successfully reset.'
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error resetting password'
+    });
   }
 });
 

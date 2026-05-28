@@ -1,9 +1,9 @@
-const axios = require('axios');
 const { isAIAvailable, disableAITemporarily } = require('./aiCircuitBreaker');
 const { logToDB } = require('../../utils/logger');
+const { executeOllamaRequest, ollamaModel } = require('./ollamaHelper');
 
 /**
- * AI Service for parsing candidate CVs and Resumes.
+ * AI Service for parsing candidate CVs and Resumes using local Ollama.
  * 
  * @param {string} cvText - The raw text extracted from a CV/Resume.
  * @returns {Promise<Object>} The parsed data structured as requested.
@@ -22,15 +22,16 @@ Extract:
 - highest education level
 - short professional summary
 
-Return ONLY valid JSON.
-
-Format:
+Return ONLY a valid JSON object matching this format:
 {
-  "skills": [],
+  "skills": ["string"],
   "experienceYears": 0,
-  "educationLevel": "",
-  "summary": ""
+  "educationLevel": "string",
+  "summary": "string"
 }
+
+Strict Rules:
+- The return value MUST be pure parseable JSON. Do not include conversational intro/outro or markdown wrappers.
 
 CV Text:
 """
@@ -38,43 +39,33 @@ ${cvText}
 """
   `;
 
+  // Default fallback schema
+  const fallbackResponse = {
+    skills: [],
+    experienceYears: 0,
+    educationLevel: '',
+    summary: ''
+  };
+
   try {
     if (!isAIAvailable()) {
-      throw new Error('AI processing is temporarily disabled due to stability issues.');
+      console.warn('[AI CV PARSER] Circuit breaker is active. Returning fallback schema.');
+      return fallbackResponse;
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY is not defined in the environment variables');
-    }
+    logToDB('info', 'AI_CV_PARSER', `Initiating CV extraction via local Ollama model: ${ollamaModel}`);
 
-    logToDB('info', 'AI_CV_PARSER', 'Initiating Gemini API call for CV extraction');
-
-    // Using Gemini 1.5 Flash for fast, structured text extraction
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        contents: [
-          {
-            parts: [{ text: prompt }]
-          }
-        ],
-        generationConfig: {
-          responseMimeType: "application/json",
-          temperature: 0.1 // Low temperature for consistent extraction
+    const parsedData = await executeOllamaRequest(
+      [
+        {
+          role: 'user',
+          content: prompt
         }
-      },
-      {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 12000 // 12 second timeout for parsing larger CVs
-      }
+      ],
+      true, // formatJson
+      0.1,  // temperature
+      'AI_TIMEOUT_PARSING'
     );
-
-    const aiResponseText = response.data.candidates[0].content.parts[0].text;
-    
-    // Parse and sanitize the response to guarantee schema alignment
-    const parsedData = JSON.parse(aiResponseText);
     
     logToDB('info', 'AI_CV_PARSER', 'CV extraction successful');
 
@@ -86,21 +77,18 @@ ${cvText}
     };
 
   } catch (error) {
-    const errorMsg = error?.response?.data || error.message;
-    console.error('[AI SERVICE ERROR] Parsing CV:', errorMsg);
+    console.error('[AI SERVICE ERROR] Parsing CV:', error.message);
     
-    logToDB('error', 'AI_CV_PARSER', 'Gemini CV Extraction Failed', errorMsg);
+    logToDB('error', 'AI_CV_PARSER', 'Local Ollama CV Extraction Failed', error.message);
     
-    // Disable AI layer temporarily to prevent cascading failures
-    disableAITemporarily();
+    // Disable AI temporarily only if it's not a model warmup timeout
+    if (error.isWarmup) {
+      console.log('[AI CV PARSER] Skipped circuit breaker activation: Local Ollama model may still be warming up.');
+    } else {
+      disableAITemporarily();
+    }
     
-    // Return empty/fallback schema rather than crashing the upload pipeline
-    return {
-      skills: [],
-      experienceYears: 0,
-      educationLevel: '',
-      summary: ''
-    };
+    return fallbackResponse;
   }
 };
 

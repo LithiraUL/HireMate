@@ -24,6 +24,27 @@ const applicationSchema = new mongoose.Schema({
     min: 0,
     max: 100
   },
+  aiScore: {
+    type: Number,
+    min: 0,
+    max: 100
+  },
+  aiSummary: {
+    type: String,
+    trim: true
+  },
+  aiStrengths: [{
+    type: String,
+    trim: true
+  }],
+  aiWeaknesses: [{
+    type: String,
+    trim: true
+  }],
+  aiRecommendation: {
+    type: String,
+    enum: ['Strong Match', 'Moderate Match', 'Weak Match']
+  },
   appliedAt: {
     type: Date,
     default: Date.now

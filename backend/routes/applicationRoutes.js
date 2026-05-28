@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const Application = require('../models/Application');
 const Job = require('../models/Job');
+const User = require('../models/User');
+const { rankCandidateWithAI } = require('../services/ai/aiRankingService');
+const { extractTextFromUrl } = require('../utils/cvTextExtractor');
 const { protect, authorize } = require('../middleware/auth');
 
 // @route   POST /api/applications
@@ -33,9 +36,53 @@ router.post('/', protect, authorize('candidate'), async (req, res) => {
       });
     }
 
+    // 1. Fetch Candidate Profile
+    const candidate = await User.findById(req.user.id);
+    
+    // 2. Fetch/Extract CV Text if available
+    let cvText = '';
+    if (candidate && candidate.cvUrl) {
+      try {
+        console.log(`[APPLICATION SERVICE] Extracting CV text for candidate: ${candidate.name} from: ${candidate.cvUrl}`);
+        cvText = await extractTextFromUrl(candidate.cvUrl);
+      } catch (extractErr) {
+        console.error('[APPLICATION SERVICE] CV Text extraction failed:', extractErr.message);
+      }
+    }
+
+    // 3. Run AI Screening Engine Directly
+    let aiMatchScore = 0;
+    let aiScore = 0;
+    let aiSummary = 'AI evaluation was unavailable or failed during the application submission.';
+    let aiStrengths = [];
+    let aiWeaknesses = [];
+    let aiRecommendation = 'Weak Match';
+
+    try {
+      console.log(`[APPLICATION SERVICE] Initiating direct DeepSeek AI candidate screening for ${candidate?.name || 'N/A'}...`);
+      const aiResult = await rankCandidateWithAI(candidate, cvText, job);
+      
+      aiMatchScore = aiResult.score;
+      aiScore = aiResult.score;
+      aiSummary = aiResult.summary;
+      aiStrengths = aiResult.strengths;
+      aiWeaknesses = aiResult.weaknesses;
+      aiRecommendation = aiResult.recommendation;
+    } catch (aiErr) {
+      // 4. Log AI failures and continue application flow
+      console.error('[APPLICATION SERVICE ERROR] Direct AI ranking execution failed:', aiErr.message);
+    }
+
+    // 5. Save AI analysis into Application collection
     const application = await Application.create({
       job: jobId,
-      candidate: req.user.id
+      candidate: req.user.id,
+      aiMatchScore,
+      aiScore,
+      aiSummary,
+      aiStrengths,
+      aiWeaknesses,
+      aiRecommendation
     });
 
     // Update job applications count

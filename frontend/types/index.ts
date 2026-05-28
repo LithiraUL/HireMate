@@ -12,6 +12,12 @@ export interface User {
   githubUrl?: string;
   linkedinUrl?: string;
   jobPreferences?: JobPreference;
+  cvHash?: string;
+  evidenceScore?: number;
+  evidenceBadge?: string;
+  validationReport?: any;
+  adminOverrideEvidenceScore?: number;
+  adminOverrideEvidenceBadge?: string;
   
   // Employer fields
   companyName?: string;
@@ -60,6 +66,9 @@ export interface Job {
   workMode: 'onsite' | 'remote' | 'hybrid';
   salaryRange?: string | { min?: number; max?: number; currency?: string };
   status: 'open' | 'closed' | 'on-hold';
+  location?: string;
+  ageRange?: { min?: number; max?: number };
+  educationRequired?: string;
   employer?: {
     _id: string;
     companyName?: string;
@@ -102,9 +111,18 @@ export interface Application {
     githubUrl?: string;
     linkedinUrl?: string;
     jobPreferences?: JobPreference;
+    experienceYears?: number;
+    educationLevel?: string;
+    extractedSkills?: string[];
   };
   status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'accepted';
   coverLetter?: string;
+  aiMatchScore?: number;
+  aiScore?: number;
+  aiSummary?: string;
+  aiStrengths?: string[];
+  aiWeaknesses?: string[];
+  aiRecommendation?: 'Strong Match' | 'Moderate Match' | 'Weak Match';
   appliedAt: Date;
   reviewedAt?: Date;
   notes?: string;

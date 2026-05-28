@@ -66,6 +66,28 @@ const userSchema = new mongoose.Schema({
   linkedinUrl: {
     type: String
   },
+  cvHash: {
+    type: String
+  },
+  evidenceScore: {
+    type: Number,
+    min: 0,
+    max: 100
+  },
+  evidenceBadge: {
+    type: String
+  },
+  validationReport: {
+    type: mongoose.Schema.Types.Mixed
+  },
+  adminOverrideEvidenceScore: {
+    type: Number,
+    min: 0,
+    max: 100
+  },
+  adminOverrideEvidenceBadge: {
+    type: String
+  },
   jobPreferences: {
     employmentType: {
       type: String,
@@ -106,6 +128,12 @@ const userSchema = new mongoose.Schema({
   },
   verificationToken: {
     type: String
+  },
+  passwordResetToken: {
+    type: String
+  },
+  passwordResetExpires: {
+    type: Date
   },
   // Common fields
   profileImage: {

@@ -2,6 +2,7 @@ const Job = require('../models/Job');
 const User = require('../models/User');
 const { 
   calculateCompatibility,
+  calculateCompatibilityOld,
   calculateSkillOverlap,
   calculatePreferenceOverlap,
   calculateAgeOverlap,
@@ -49,9 +50,11 @@ const getCompatibleCandidates = async (req, res) => {
       
     const total = await User.countDocuments(filter);
 
-    // 3. Loop through candidates, calculate scores, and store in array
-    const scoredCandidates = candidates.map(candidate => {
+    // 3. Loop through candidates and calculate base compatibility scores using traditional mathematical scoring
+    const scoredCandidates = candidates.map((candidate) => {
       const combinedSkills = [...new Set([...(candidate.skills || []), ...(candidate.extractedSkills || [])])];
+      
+      const baseScore = calculateCompatibilityOld(job, candidate);
       
       const breakdown = {
         skillScore: calculateSkillOverlap(combinedSkills, job.requiredSkills),
@@ -59,12 +62,12 @@ const getCompatibleCandidates = async (req, res) => {
         educationScore: calculateEducationOverlap(job, candidate),
         preferenceScore: calculatePreferenceOverlap(job, candidate),
         ageScore: calculateAgeOverlap(job, candidate),
-        finalScore: calculateCompatibility(job, candidate)
+        finalScore: baseScore
       };
       
       return {
         ...candidate.toObject(),
-        compatibilityScore: breakdown.finalScore,
+        compatibilityScore: baseScore,
         _breakdown: breakdown
       };
     });
@@ -72,22 +75,78 @@ const getCompatibleCandidates = async (req, res) => {
     // 4. Sort descending (highest score first)
     scoredCandidates.sort((a, b) => b.compatibilityScore - a.compatibilityScore);
 
-    // 5. Generate AI explanations and assign absolute ranks
-    const finalizedCandidates = await Promise.all(
-      scoredCandidates.map(async (candidate, index) => {
-        const rank = skip + index + 1;
-        const explanation = await generateRankingExplanation(job, candidate, candidate._breakdown);
-        
-        // Remove temporary breakdown data
-        delete candidate._breakdown;
-        
-        return {
-          ...candidate,
-          rank,
-          aiExplanation: explanation
+    // 5. Tiered Evaluation: sequentially calculate premium AI screening for ONLY the top 5 candidates
+    // to completely prevent concurrent local inference congestion and optimize page load speeds!
+    const topCandidates = scoredCandidates.slice(0, 5);
+    const remainingCandidates = scoredCandidates.slice(5);
+
+    console.log(`[RECOMMENDATION PROCESS] Running premium sequential AI screening for top ${topCandidates.length} candidate(s)...`);
+
+    const totalStartTime = Date.now();
+    const finalizedTopCandidates = [];
+
+    for (const candidate of topCandidates) {
+      const candStartTime = Date.now();
+      let aiResult;
+      try {
+        // Calls the local Ollama screening engine (which has fallback logic built-in)
+        aiResult = await calculateCompatibility(job, candidate);
+      } catch (err) {
+        console.error(`[RECOMMENDATION PROCESS] AI screening failed for candidate ${candidate.name}:`, err.message);
+        aiResult = {
+          score: candidate.compatibilityScore,
+          strengths: ["Standard match evaluated by fallback engine."],
+          weaknesses: [],
+          summary: "Detailed AI screening was unavailable at this time.",
+          recommendation: candidate.compatibilityScore >= 80 ? 'Strong Match' : (candidate.compatibilityScore >= 50 ? 'Moderate Match' : 'Weak Match')
         };
-      })
-    );
+      }
+
+      const candDuration = Date.now() - candStartTime;
+      console.log(`[RECOMMENDATION PROCESS] Candidate ${candidate.name || 'N/A'} screened in ${candDuration}ms.`);
+
+      finalizedTopCandidates.push({
+        ...candidate,
+        compatibilityScore: aiResult.score,
+        strengths: aiResult.strengths,
+        weaknesses: aiResult.weaknesses,
+        summary: aiResult.summary,
+        recommendation: aiResult.recommendation,
+        aiExplanation: aiResult.summary
+      });
+    }
+
+    const totalDuration = Date.now() - totalStartTime;
+    console.log(`[RECOMMENDATION PROCESS] Total sequential AI screening completed in ${totalDuration}ms.`);
+
+    if (totalDuration > 180000) {
+      console.warn(`[RECOMMENDATION PROCESS WARNING] Sequential screening duration (${totalDuration}ms) exceeded 3 minutes!`);
+    }
+
+    // Populate fallback details for remaining pool candidates
+    const finalizedRemainingCandidates = remainingCandidates.map((candidate) => {
+      const rec = candidate.compatibilityScore >= 80 ? 'Strong Match' : (candidate.compatibilityScore >= 50 ? 'Moderate Match' : 'Weak Match');
+      return {
+        ...candidate,
+        strengths: ["Profile matched via traditional search filters."],
+        weaknesses: [],
+        summary: "Profile details are available on candidate card.",
+        recommendation: rec,
+        aiExplanation: `Traditional overlap score: ${candidate.compatibilityScore}%. Detailed AI screening is reserved for top 5 matching candidates.`
+      };
+    });
+
+    const combinedFinalized = [...finalizedTopCandidates, ...finalizedRemainingCandidates];
+
+    // Assign absolute ranks
+    const finalizedCandidates = combinedFinalized.map((candidate, index) => {
+      const rank = skip + index + 1;
+      delete candidate._breakdown; // Remove temporary breakdown data
+      return {
+        ...candidate,
+        rank
+      };
+    });
 
     // 6. Return ranked and paginated list
     res.status(200).json({

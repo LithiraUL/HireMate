@@ -6,6 +6,8 @@ const multer = require('multer');
 const cloudinary = require('../config/cloudinary');
 const { parseCV } = require('../services/ai/cvParserService');
 const { extractTextFromBuffer } = require('../utils/cvTextExtractor');
+const crypto = require('crypto');
+const { runEvidenceValidation } = require('../services/evidenceValidator');
 
 // Configure multer for file upload
 const storage = multer.memoryStorage();
@@ -148,18 +150,57 @@ router.post('/upload-cv', protect, authorize('candidate'), upload.single('cv'), 
       }
     }
 
-    // Update user CV URL and any successfully extracted AI data
-    await User.findByIdAndUpdate(req.user.id, {
+    // Hash-based detection to run the Evidence Validation pipeline
+    const newCvHash = crypto.createHash('sha256').update(req.file.buffer).digest('hex');
+    const existingUser = await User.findById(req.user.id);
+    
+    let evidenceUpdates = {};
+    if (!existingUser.cvHash || existingUser.cvHash !== newCvHash) {
+      console.log('[USER ROUTES] CV Hash changed or first upload. Triggering evidence validation pipeline...');
+      try {
+        // Build mock skills if they are not saved in database yet, so that validator knows candidate's focus
+        const tempSkills = aiUpdates.extractedSkills && aiUpdates.extractedSkills.length > 0 
+          ? aiUpdates.extractedSkills 
+          : (existingUser.skills || []);
+        
+        const tempUser = {
+          ...existingUser.toObject(),
+          skills: tempSkills,
+          aiSummary: aiUpdates.aiSummary || existingUser.aiSummary
+        };
+        
+        const evidenceResult = await runEvidenceValidation(tempUser, cvText);
+        
+        evidenceUpdates = {
+          cvHash: newCvHash,
+          evidenceScore: evidenceResult.evidenceScore,
+          evidenceBadge: evidenceResult.evidenceBadge,
+          validationReport: evidenceResult.validationReport
+        };
+      } catch (evidenceError) {
+        console.error('[USER ROUTES] CV Evidence Validation pipeline failed:', evidenceError.message);
+      }
+    } else {
+      console.log('[USER ROUTES] CV Hash is unchanged. Skipping evidence validation pipeline.');
+    }
+
+    // Update user CV URL, successfully extracted AI data, and evidence validation stats
+    const updatedUser = await User.findByIdAndUpdate(req.user.id, {
       cvUrl: result.secure_url,
       cvPublicId: result.public_id,
-      ...aiUpdates
-    });
+      ...aiUpdates,
+      ...evidenceUpdates
+    }, { new: true });
 
     res.status(200).json({
       success: true,
       message: 'CV uploaded successfully. ' + (Object.keys(aiUpdates).length > 0 ? 'AI successfully extracted candidate profile data.' : 'AI parsing skipped or failed.'),
       url: result.secure_url,
-      aiData: aiUpdates
+      aiData: aiUpdates,
+      evidenceData: {
+        evidenceScore: updatedUser.evidenceScore,
+        evidenceBadge: updatedUser.evidenceBadge
+      }
     });
   } catch (error) {
     console.error('CV upload error:', error);
@@ -220,13 +261,52 @@ router.get('/search', protect, authorize('employer'), async (req, res) => {
 
     const total = await User.countDocuments(filter);
 
+    // Lazy load and heal evidence badge fields for pre-existing candidates
+    const { extractTextFromUrl } = require('../utils/cvTextExtractor');
+    const processedCandidates = await Promise.all(
+      candidates.map(async (c) => {
+        if (c.role === 'candidate' && !c.evidenceBadge) {
+          try {
+            if (c.cvUrl) {
+              console.log(`[USER ROUTES] Lazy-seeding evidence calculations for existing candidate: ${c.name}`);
+              const cvText = await extractTextFromUrl(c.cvUrl);
+              const evidence = await runEvidenceValidation(c, cvText);
+              
+              c.evidenceScore = evidence.evidenceScore;
+              c.evidenceBadge = evidence.evidenceBadge;
+              c.validationReport = evidence.validationReport;
+              
+              await User.findByIdAndUpdate(c._id, {
+                evidenceScore: evidence.evidenceScore,
+                evidenceBadge: evidence.evidenceBadge,
+                validationReport: evidence.validationReport
+              });
+            } else {
+              c.evidenceScore = 0;
+              c.evidenceBadge = 'Insufficient Evidence Profile';
+              await User.findByIdAndUpdate(c._id, {
+                evidenceScore: 0,
+                evidenceBadge: 'Insufficient Evidence Profile'
+              });
+            }
+          } catch (lazyErr) {
+            console.error(`[USER ROUTES] Lazy evidence seeding failed for candidate ${c.name}:`, lazyErr.message);
+            // Fallback default so it doesn't crash search results
+            c.evidenceScore = 0;
+            c.evidenceBadge = 'Insufficient Evidence Profile';
+          }
+        }
+        return c;
+      })
+    );
+
     res.status(200).json({
       success: true,
-      count: candidates.length,
+      count: processedCandidates.length,
       total,
       page: parseInt(page),
       pages: Math.ceil(total / parseInt(limit)),
-      candidates
+      candidates: processedCandidates
     });
   } catch (error) {
     console.error('Search candidates error:', error);
@@ -242,13 +322,38 @@ router.get('/search', protect, authorize('employer'), async (req, res) => {
 // @access  Private
 router.get('/:id', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    let user = await User.findById(req.params.id).select('-password');
 
     if (!user) {
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
+    }
+
+    // Lazy load and heal evidence badge for pre-existing profile details view
+    if (user.role === 'candidate' && !user.evidenceBadge) {
+      try {
+        const { extractTextFromUrl } = require('../utils/cvTextExtractor');
+        if (user.cvUrl) {
+          console.log(`[USER ROUTES] Lazy-seeding profile evidence for candidate: ${user.name}`);
+          const cvText = await extractTextFromUrl(user.cvUrl);
+          const evidence = await runEvidenceValidation(user, cvText);
+          
+          user = await User.findByIdAndUpdate(user._id, {
+            evidenceScore: evidence.evidenceScore,
+            evidenceBadge: evidence.evidenceBadge,
+            validationReport: evidence.validationReport
+          }, { new: true }).select('-password');
+        } else {
+          user = await User.findByIdAndUpdate(user._id, {
+            evidenceScore: 0,
+            evidenceBadge: 'Insufficient Evidence Profile'
+          }, { new: true }).select('-password');
+        }
+      } catch (lazyErr) {
+        console.error(`[USER ROUTES] Lazy profile details evidence seeding failed for: ${user.name}:`, lazyErr.message);
+      }
     }
 
     res.status(200).json({

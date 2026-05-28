@@ -13,6 +13,7 @@ AI-powered recruitment management system for SMEs in Sri Lanka. A comprehensive 
 - ✅ Set job preferences (full-time/part-time, onsite/remote/hybrid)
 - ✅ Receive personalized job invitations from employers
 - ✅ Direct job access via email links with auto-login redirect
+- ✅ Secure self-service password recovery via registered email (Forgot/Reset password)
 
 ### For Employers
 - ✅ Post jobs with detailed requirements (title, description, skills, salary range)
@@ -50,11 +51,10 @@ AI-powered recruitment management system for SMEs in Sri Lanka. A comprehensive 
 - **bcryptjs** - Password hashing
 - **Multer** - File upload handling
 
-### AI Layer (Phase 2 - Planned)
-- **Python** with **FastAPI**
-- **Google Gemini API** - CV validation
-- **DeepSeek API** - Code repository analysis
-- **Hugging Face Transformers** - NLP models
+### AI Layer (Phase 2 - ✅ Complete & Integrated)
+- **Local Ollama Inference Engine** - Running Llama 3.2:3b model locally.
+- **AI CV Validation & Extractors** - Real-time candidate resume parsing and standard key parameter extractions.
+- **AI Recruiter Compatibility Screening** - Sequential candidate suitability evaluation against job qualifications and experience, with zero-latency fallback engines.
 
 ## 📦 Installation
 
@@ -115,6 +115,8 @@ HireMate/
 │   │   └── logs/               # System logs
 │   ├── login/                   # Login with role-based redirect
 │   ├── register/                # Registration page
+│   ├── forgot-password/         # Submit email reset form
+│   ├── reset-password/[token]/  # Enter complex new password
 │   ├── about/                   # About page
 │   ├── contact/                 # Contact form
 │   ├── faq/                     # FAQ page
@@ -202,11 +204,11 @@ HireMate/
 - [x] Salary range management (min/max)
 - [x] Reusable components library
 
-### Phase 2 (Upcoming)
-- [ ] AI Ranking Engine integration
-- [ ] CV Validation Engine (GitHub/LinkedIn analysis)
-- [ ] Skill matching algorithms
-- [ ] Automated candidate ranking
+### Phase 2 ✅ COMPLETE
+- [x] AI Ranking Engine integration via local Ollama
+- [x] CV Validation Engine & Resume parser
+- [x] Skill matching algorithms
+- [x] Automated candidate ranking and score breakdowns
 
 ### Phase 3 (Future)
 - [ ] Real-time notifications with WebSockets
@@ -237,6 +239,8 @@ The frontend is designed to work with a REST API backend. Update `NEXT_PUBLIC_AP
 **Authentication**
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
+- `POST /api/auth/forgot-password` - Request a password reset link
+- `POST /api/auth/reset-password/:token` - Reset password with token
 - `GET /api/auth/me` - Get current user
 - `PUT /api/auth/profile` - Update profile
 

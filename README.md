@@ -15,8 +15,8 @@ HireMate is a comprehensive recruitment management system designed for Small and
 ### ✨ Key Features
 
 - 🔐 **Role-Based Authentication** (Candidate, Employer, Admin)
-- 🤖 **AI-Driven Recruitment Engine** (Gemini 1.5 Flash integration)
-- 📝 **Smart CV Parsing** (Automated skill, experience & education extraction)
+- 🤖 **AI-Driven Recruitment Engine** (Local Ollama Llama 3.2:3b model integration)
+- 📝 **Smart CV Parsing** (Automated skill, experience & education extraction via local Ollama)
 - 🎯 **Intelligent Match Scoring** (Multi-vector candidate/job compatibility algorithm)
 - 🧠 **AI HR Summaries** (Natural language candidate ranking explanations)
 - 📄 **CV Upload & Management** (Cloudinary integration)
@@ -102,7 +102,7 @@ HireMate/
 │   │   └── adminRoutes.js   # Admin operations
 │   │
 │   ├── services/             # Business Logic
-│   │   ├── ai/              # AI Services (Gemini integration, Circuit Breaker)
+│   │   ├── ai/              # AI Services (DeepSeek integration, Circuit Breaker)
 │   │   └── compatibilityEngine.js # Multi-vector scoring algorithm
 │   │
 │   ├── middleware/           # Express middleware
@@ -115,6 +115,7 @@ HireMate/
 │   ├── .env                  # Environment variables
 │   └── server.js            # Express server entry
 │
+├── SYSTEM_FLOW_AND_ALGORITHMS.md # 📖 System Flow & Algorithmic Architecture
 ├── SYSTEM_COMPLETE.md        # 📖 Full documentation
 └── README.md                 # This file
 ```
@@ -128,7 +129,7 @@ HireMate/
 - MongoDB (local or Atlas)
 - Cloudinary account
 - Gmail account
-- **Google Gemini API Key** (Required for Phase 2 AI functionality)
+- **Local Ollama** (with `llama3.2:3b` pulled and running locally)
 
 ### 1. Backend Setup
 
@@ -136,7 +137,7 @@ HireMate/
 cd backend
 npm install
 
-# Configure .env file with MongoDB, JWT, Cloudinary, Gmail credentials, and GEMINI_API_KEY
+# Configure .env file with MongoDB, JWT, Cloudinary, Gmail credentials, and local OLLAMA_URL
 npm run dev
 ```
 
@@ -181,7 +182,7 @@ Frontend runs on: **http://localhost:3001**
 
 **Frontend**: Next.js 14 • TypeScript • Tailwind CSS • Axios • Recharts (Analytics)  
 **Backend**: Node.js • Express • MongoDB • Mongoose • JWT  
-**AI Services**: Google Gemini 1.5 Flash • pdf-parse  
+**AI Services**: DeepSeek via OpenRouter • pdf-parse  
 **Integrations**: Cloudinary (CV Storage) • NodeMailer (Gmail SMTP)  
 **DevOps**: Git • GitHub  
 
@@ -200,7 +201,7 @@ Frontend runs on: **http://localhost:3001**
 | Backend - Interview Service | ✅ Complete (Scheduling, Confirmation, Email Notifications) |
 | Backend - Analytics Service | ✅ Complete (Hiring Trends, Time-to-Hire, Demographics) |
 | Backend - Admin Service | ✅ Complete (User Management, Job Moderation, System Stats, Logs) |
-| Backend - AI Services (Phase 2) | ✅ Complete (Gemini CV Parsing, Compatibility Scoring, Circuit Breaker) |
+| Backend - AI Services (Phase 2) | ✅ Complete (DeepSeek CV Parsing, Compatibility Scoring, Circuit Breaker) |
 | Email Notifications | ✅ Complete (Interview Invites, Status Updates, Job Invitations) |
 | CV Upload (Cloudinary) | ✅ Complete (Image & PDF support with AI text extraction) |
 | Salary Management | ✅ Complete (Min/Max range with currency) |
@@ -213,10 +214,13 @@ Frontend runs on: **http://localhost:3001**
 ## 📖 Documentation
 
 
-- **[PHASE1_COMPLETION_REPORT.md](./PHASE1_COMPLETION_REPORT.md)** - Phase 1 architecture & system logic
-- **[PHASE2_COMPLETION_REPORT.md](./PHASE2_COMPLETION_REPORT.md)** - Phase 2 AI & Recommendation engine summary
-- **[frontend/README.md](./frontend/README.md)** - Frontend guide
-- **[backend/README.md](./backend/README.md)** - API documentation
+- **[SYSTEM_FLOW_AND_ALGORITHMS.md](./SYSTEM_FLOW_AND_ALGORITHMS.md)** - 🎯 Core system flows, sequence flowcharts, and mathematical/AI ranking algorithms.
+- **[FILE_STRUCTURE.md](./FILE_STRUCTURE.md)** - 📁 Deep dive into the modular codebase layout, directory maps, dependencies, and file relationships.
+- **[IMPLEMENTATION_LOG.md](./IMPLEMENTATION_LOG.md)** - 📝 Chronological technical log of all features, portal builds, bug fixes, and security metrics implemented.
+- **[PHASE1_COMPLETION_REPORT.md](./PHASE1_COMPLETION_REPORT.md)** - Phase 1 architecture, portal configurations, and core system logic.
+- **[PHASE2_COMPLETION_REPORT.md](./PHASE2_COMPLETION_REPORT.md)** - Phase 2 local AI engine integration, CV parsing, and compatibility engine setup.
+- **[frontend/README.md](./frontend/README.md)** - Frontend client setup, styling rules, and page structure guides.
+- **[backend/README.md](./backend/README.md)** - Backend server APIs, configuration rules, and route endpoint references.
 
 ---
 

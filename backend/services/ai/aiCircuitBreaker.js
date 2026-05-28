@@ -4,7 +4,7 @@
  */
 
 let aiDisabledUntil = 0;
-const DISABLE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+const DISABLE_DURATION_MS = 1 * 60 * 1000; // 1 minute
 
 const isAIAvailable = () => {
   return Date.now() > aiDisabledUntil;

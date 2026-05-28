@@ -1,13 +1,13 @@
-const axios = require('axios');
 const { isAIAvailable, disableAITemporarily } = require('./aiCircuitBreaker');
 const { logToDB } = require('../../utils/logger');
+const { executeOllamaRequest, ollamaModel } = require('./ollamaHelper');
 
 /**
- * AI Service for generating human-readable explanations for candidate rankings.
+ * AI Service for generating human-readable explanations for candidate rankings using local Ollama.
  * 
  * @param {Object} job - The job object.
  * @param {Object} candidate - The candidate object.
- * @param {Object} scoreBreakdown - The detailed breakdown of scores { finalScore, skillScore, experienceScore, educationScore, preferenceScore, ageScore }
+ * @param {Object} scoreBreakdown - The detailed breakdown of scores.
  * @returns {Promise<string>} A short, professional explanation of the candidate's fit.
  */
 const generateRankingExplanation = async (job, candidate, scoreBreakdown) => {
@@ -34,54 +34,44 @@ const generateRankingExplanation = async (job, candidate, scoreBreakdown) => {
     - Output ONLY the raw text explanation. No markdown, no JSON, no conversational filler.
   `;
 
+  const fallbackText = "AI ranking temporarily unavailable. Manual evaluation is recommended.";
+
   try {
     if (!isAIAvailable()) {
-      return "AI ranking temporarily unavailable. Manual evaluation is recommended.";
+      return fallbackText;
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return "AI ranking temporarily unavailable. Manual evaluation is recommended.";
-    }
+    logToDB('info', 'AI_RANKING_EXPLANATION', `Initiating ranking explanation via local Ollama model: ${ollamaModel}`);
 
-    logToDB('info', 'AI_RANKING_EXPLANATION', 'Initiating Gemini API call for ranking explanation');
-
-    const response = await axios.post(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-      {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3, // Low variance for professional, factual tone
-          maxOutputTokens: 150
+    const cleanContent = await executeOllamaRequest(
+      [
+        {
+          role: 'user',
+          content: prompt
         }
-      },
-      { 
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 8000 // 8 second timeout to prevent stalling
-      }
+      ],
+      false, // formatJson
+      0.3,   // temperature
+      'AI_TIMEOUT_RANKING'
     );
 
-    const aiText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (!aiText) {
-      throw new Error('AI returned an empty response');
-    }
-    
     logToDB('info', 'AI_RANKING_EXPLANATION', 'Ranking explanation generated successfully');
 
-    // Clean and sanitize the response so we don't expose raw AI artifacts
-    return aiText.replace(/`/g, '').trim();
+    return cleanContent.replace(/`/g, '').trim();
 
   } catch (error) {
-    const errorMsg = error?.response?.data || error.message;
-    console.error('[AI SERVICE ERROR] Generating ranking explanation:', errorMsg);
+    console.error('[AI SERVICE ERROR] Generating ranking explanation:', error.message);
     
-    logToDB('error', 'AI_RANKING_EXPLANATION', 'Gemini Ranking Explanation Failed', errorMsg);
+    logToDB('error', 'AI_RANKING_EXPLANATION', 'Local Ollama Ranking Explanation Failed', error.message);
     
-    // Disable AI layer temporarily to prevent cascading failures
-    disableAITemporarily();
+    // Disable AI temporarily only if it's not a model warmup timeout
+    if (error.isWarmup) {
+      console.log('[AI RANKING EXPLANATION] Skipped circuit breaker activation: Local Ollama model may still be warming up.');
+    } else {
+      disableAITemporarily();
+    }
     
-    return "AI ranking temporarily unavailable. Manual evaluation is recommended.";
+    return fallbackText;
   }
 };
 

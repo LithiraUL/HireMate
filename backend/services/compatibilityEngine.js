@@ -1,4 +1,6 @@
 const { normalizeSkillsArray } = require('../utils/skillNormalizer');
+const { rankCandidateWithAI } = require('./ai/aiRankingService');
+const { extractTextFromUrl } = require('../utils/cvTextExtractor');
 
 /**
  * Calculates the percentage of overlap between candidate skills and job required skills.
@@ -143,13 +145,13 @@ const calculateEducationOverlap = (job, candidate) => {
 };
 
 /**
- * Calculates the overall compatibility score between a job and a candidate.
+ * Calculates the overall compatibility score between a job and a candidate using a fallback algorithm.
  * 
  * @param {Object} job - The job object.
  * @param {Object} candidate - The candidate object.
  * @returns {number} The final compatibility score (0-100).
  */
-const calculateCompatibility = (job, candidate) => {
+const calculateCompatibilityOld = (job, candidate) => {
   if (!job || !candidate) return 0;
 
   // Merge raw profile skills and AI extracted skills
@@ -162,7 +164,7 @@ const calculateCompatibility = (job, candidate) => {
   const preferenceScore = calculatePreferenceOverlap(job, candidate);
   const ageScore = calculateAgeOverlap(job, candidate);
 
-  // 2. Apply weights (Updated to incorporate new AI fields):
+  // 2. Apply weights:
   // - Skills: 40%
   // - Experience: 25%
   // - Education: 10%
@@ -178,11 +180,77 @@ const calculateCompatibility = (job, candidate) => {
   return Math.round(finalScore);
 };
 
+/**
+ * Helper to compute and return a standard fallback evaluation response.
+ */
+const useFallbackScoring = (job, candidate) => {
+  const fallbackScore = calculateCompatibilityOld(job, candidate);
+  const recommendation = fallbackScore >= 80 ? 'Strong Match' : (fallbackScore >= 50 ? 'Moderate Match' : 'Weak Match');
+  
+  return {
+    score: fallbackScore,
+    strengths: ["Standard profile match evaluated by fallback engine."],
+    weaknesses: [],
+    summary: `AI service is currently offline. Compatibility score calculated via secondary fallback algorithm: ${fallbackScore}%.`,
+    recommendation: recommendation
+  };
+};
+
+/**
+ * Calculates the overall compatibility between a job and a candidate using AI ranking.
+ * If the AI ranking service is unavailable, it automatically drops back to the traditional weighted scoring model.
+ * 
+ * @param {Object} job - The job object.
+ * @param {Object} candidate - The candidate object.
+ * @returns {Promise<Object>} An object containing the score, strengths, weaknesses, summary, and recommendation.
+ */
+const calculateCompatibility = async (job, candidate) => {
+  if (!job || !candidate) {
+    return {
+      score: 0,
+      strengths: [],
+      weaknesses: [],
+      summary: "Missing job or candidate profile information.",
+      recommendation: "Weak Match"
+    };
+  }
+
+  try {
+    // 1. Extract CV Text from URL if available
+    let cvText = '';
+    if (candidate.cvUrl) {
+      try {
+        console.log(`[COMPATIBILITY ENGINE] Extracting text for candidate: ${candidate.name || 'N/A'} from CV URL: ${candidate.cvUrl}`);
+        cvText = await extractTextFromUrl(candidate.cvUrl);
+      } catch (extractionError) {
+        console.error('[COMPATIBILITY ENGINE] CV Extraction failed:', extractionError.message);
+      }
+    }
+
+    // 2. Call AI Ranking Service
+    const aiResult = await rankCandidateWithAI(candidate, cvText, job);
+
+    // 3. Validate AI outcome, drop to traditional model if fallback response detected
+    if (!aiResult || aiResult.score === 0 || aiResult.summary.includes('unavailable')) {
+      console.log('[COMPATIBILITY ENGINE] AI evaluation was unavailable or returned default score. Activating traditional fallback scoring...');
+      return useFallbackScoring(job, candidate);
+    }
+
+    console.log(`[COMPATIBILITY ENGINE] DeepSeek AI evaluation succeeded for ${candidate.name || 'candidate'}. Score: ${aiResult.score}`);
+    return aiResult;
+
+  } catch (error) {
+    console.error('[COMPATIBILITY ENGINE] Error during AI ranking execution. Falling back to traditional scoring:', error.message);
+    return useFallbackScoring(job, candidate);
+  }
+};
+
 module.exports = {
   calculateSkillOverlap,
   calculatePreferenceOverlap,
   calculateAgeOverlap,
   calculateExperienceOverlap,
   calculateEducationOverlap,
+  calculateCompatibilityOld,
   calculateCompatibility
 };

@@ -233,10 +233,52 @@ const companyVerificationEmail = (companyName, verificationLink) => {
   `;
 };
 
+// Password reset email template
+const passwordResetEmail = (userName, resetLink) => {
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #3b82f6; color: white; padding: 20px; text-align: center; }
+        .content { background: #f9fafb; padding: 30px; }
+        .button { display: inline-block; background: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+        .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Reset Your Password</h1>
+        </div>
+        <div class="content">
+          <p>Dear ${userName},</p>
+          <p>You requested a password reset for your HireMate account. Please click the button below to reset your password. This link is valid for 15 minutes.</p>
+          
+          <center>
+            <a href="${resetLink}" class="button">Reset Password</a>
+          </center>
+          
+          <p>If you did not request this reset, ignore this email.</p>
+          
+          <p>Best regards,<br/>The HireMate Team</p>
+        </div>
+        <div class="footer">
+          <p>&copy; 2024 HireMate. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+};
+
 module.exports = {
   sendEmail,
   interviewInvitationEmail,
   interviewStatusEmail,
   jobInvitationEmail,
-  companyVerificationEmail
+  companyVerificationEmail,
+  passwordResetEmail
 };

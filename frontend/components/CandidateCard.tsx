@@ -27,6 +27,14 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
     return 'bg-red-100 text-red-800 border-red-200';
   };
 
+  const getEvidenceBadgeColor = (badge?: string) => {
+    if (!badge) return '';
+    if (badge.includes('Strong')) return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+    if (badge.includes('Moderate')) return 'bg-amber-50 text-amber-700 border-amber-200';
+    if (badge.includes('Weak')) return 'bg-orange-50 text-orange-700 border-orange-200';
+    return 'bg-rose-50 text-rose-700 border-rose-200';
+  };
+
   return (
     <div
       className="card cursor-pointer hover:border-primary-500 border-2 border-transparent transition-all relative"
@@ -34,7 +42,7 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center">
-          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-2xl font-bold">
+          <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 text-2xl font-bold animate-fadeIn">
             {candidate.name.charAt(0).toUpperCase()}
           </div>
           <div className="ml-4 pr-16">
@@ -48,6 +56,13 @@ const CandidateCard: React.FC<CandidateCardProps> = ({
                 <span className="badge badge-info whitespace-nowrap">{candidate.age} years</span>
               )}
             </div>
+            {candidate.evidenceBadge && (
+              <div className="mt-2 flex items-center">
+                <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full border shadow-sm ${getEvidenceBadgeColor(candidate.evidenceBadge)}`}>
+                  {candidate.evidenceBadge}
+                </span>
+              </div>
+            )}
           </div>
         </div>
         

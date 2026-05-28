@@ -12,6 +12,192 @@ import JobCard from '@/components/JobCard';
 import Modal from '@/components/Modal';
 import { FiEdit, FiTrash2, FiEye, FiCalendar } from 'react-icons/fi';
 
+// Helper functions for skill normalization matching the backend skillNormalizer.js
+const normalizeSkill = (skill: string): string => {
+  if (!skill) return '';
+  const s = skill.toString().trim().toLowerCase();
+  
+  const aliases: Record<string, string> = {
+    'js': 'JavaScript',
+    'javascript': 'JavaScript',
+    'ts': 'TypeScript',
+    'typescript': 'TypeScript',
+    'html': 'HTML',
+    'html5': 'HTML',
+    'css': 'CSS',
+    'css3': 'CSS',
+    'react': 'React',
+    'reactjs': 'React',
+    'react.js': 'React',
+    'node': 'Node.js',
+    'nodejs': 'Node.js',
+    'node.js': 'Node.js',
+    'vue': 'Vue.js',
+    'vuejs': 'Vue.js',
+    'vue.js': 'Vue.js',
+    'angular': 'Angular',
+    'angularjs': 'Angular',
+    'py': 'Python',
+    'python': 'Python',
+    'java': 'Java',
+    'c++': 'C++',
+    'cpp': 'C++',
+    'c#': 'C#',
+    'csharp': 'C#',
+    'php': 'PHP',
+    'aws': 'AWS',
+    'gcp': 'GCP',
+    'sql': 'SQL',
+    'mysql': 'MySQL',
+    'postgres': 'PostgreSQL',
+    'postgresql': 'PostgreSQL',
+    'mongo': 'MongoDB',
+    'mongodb': 'MongoDB',
+    'docker': 'Docker',
+    'k8s': 'Kubernetes',
+    'kubernetes': 'Kubernetes',
+    'git': 'Git',
+    'github': 'GitHub',
+    'ui': 'UI Design',
+    'ux': 'UX Design',
+    'ui/ux': 'UI/UX Design',
+    'ml': 'Machine Learning',
+    'ai': 'Artificial Intelligence',
+    'express': 'Express.js',
+    'expressjs': 'Express.js',
+    'nextjs': 'Next.js',
+    'next.js': 'Next.js',
+    'django': 'Django',
+    'flask': 'Flask',
+    'spring': 'Spring Boot',
+    'springboot': 'Spring Boot',
+    'ruby': 'Ruby',
+    'rails': 'Ruby on Rails',
+    'rubyonrails': 'Ruby on Rails'
+  };
+
+  if (aliases[s]) {
+    return aliases[s];
+  }
+
+  return skill.trim().replace(/\b\w/g, l => l.toUpperCase());
+};
+
+const normalizeSkillsArray = (skillsArray: string[]): string[] => {
+  if (!Array.isArray(skillsArray)) return [];
+  const normalized = skillsArray.map(normalizeSkill).filter(Boolean);
+  return Array.from(new Set(normalized));
+};
+
+// Algorithmic compatibility calculator matching backend compatibilityEngine.js logic
+const calculateAlgorithmicScore = (job: any, candidate: any): number => {
+  if (!job || !candidate) return 0;
+
+  // 1. Skills Overlap (40%)
+  const combinedSkills = Array.from(new Set([
+    ...(candidate.skills || []),
+    ...(candidate.extractedSkills || [])
+  ]));
+  
+  const jobRequiredSkills = job.requiredSkills || [];
+  let skillScore = 100;
+  if (jobRequiredSkills.length > 0) {
+    const normalizedCandidateSkills = normalizeSkillsArray(combinedSkills);
+    const normalizedJobSkills = normalizeSkillsArray(jobRequiredSkills);
+    let matchCount = 0;
+    normalizedJobSkills.forEach(skill => {
+      if (normalizedCandidateSkills.includes(skill)) {
+        matchCount++;
+      }
+    });
+    skillScore = Math.round((matchCount / normalizedJobSkills.length) * 100);
+  }
+
+  // 2. Experience Overlap (25%)
+  const requiredExp = job.experienceRequired || 0;
+  let experienceScore = 100;
+  if (requiredExp > 0) {
+    const actualExp = candidate.experienceYears || 0;
+    if (actualExp >= requiredExp) {
+      experienceScore = 100;
+    } else {
+      experienceScore = Math.round((actualExp / requiredExp) * 100);
+    }
+  }
+
+  // 3. Education Overlap (10%)
+  let educationScore = 100;
+  if (job.educationRequired) {
+    if (!candidate.educationLevel) {
+      educationScore = 0;
+    } else {
+      const req = job.educationRequired.toLowerCase();
+      const actual = candidate.educationLevel.toLowerCase();
+      if (actual.includes(req) || req.includes(actual)) {
+        educationScore = 100;
+      } else {
+        educationScore = 50;
+      }
+    }
+  }
+
+  // 4. Preference Overlap (15%)
+  const jobEmploymentType = job.employmentType || job.jobType;
+  const jobWorkMode = job.workMode;
+  
+  const candidateEmploymentType = candidate.jobPreferences?.employmentType;
+  const candidateWorkMode = candidate.jobPreferences?.workMode;
+  
+  let preferenceMatches = 0;
+  if (
+    !jobEmploymentType || 
+    !candidateEmploymentType || 
+    candidateEmploymentType === 'both' || 
+    jobEmploymentType === candidateEmploymentType
+  ) {
+    preferenceMatches++;
+  }
+  
+  if (
+    !jobWorkMode || 
+    !candidateWorkMode || 
+    candidateWorkMode === 'any' || 
+    jobWorkMode === candidateWorkMode
+  ) {
+    preferenceMatches++;
+  }
+  
+  let preferenceScore = 0;
+  if (preferenceMatches === 2) preferenceScore = 100;
+  else if (preferenceMatches === 1) preferenceScore = 50;
+
+  // 5. Age Overlap (10%)
+  let ageScore = 100;
+  if (job.ageRange && (job.ageRange.min || job.ageRange.max)) {
+    if (!candidate.age) {
+      ageScore = 0;
+    } else {
+      const age = candidate.age;
+      const min = job.ageRange.min || 0;
+      const max = job.ageRange.max || Infinity;
+      if (age >= min && age <= max) {
+        ageScore = 100;
+      } else {
+        ageScore = 0;
+      }
+    }
+  }
+
+  const finalScore = 
+    (skillScore * 0.40) + 
+    (experienceScore * 0.25) + 
+    (educationScore * 0.10) + 
+    (preferenceScore * 0.15) + 
+    (ageScore * 0.10);
+
+  return Math.round(finalScore);
+};
+
 export default function EmployerJobs() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -120,7 +306,9 @@ export default function EmployerJobs() {
       setShowInterviewModal(false);
       setSelectedApplication(null);
       setInterviewData({ date: '', time: '', meetingLink: '', notes: '' });
-      loadApplications(); // Refresh applications
+      if (selectedJob) {
+        loadApplications(selectedJob._id); // Refresh applications
+      }
     } catch (error) {
       console.error('Error scheduling interview:', error);
       alert('Failed to schedule interview. Please try again.');
@@ -195,7 +383,7 @@ export default function EmployerJobs() {
                 <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div>
                     <span className="font-semibold">Job Type:</span>
-                    <span className="ml-2 capitalize">{selectedJob.jobType}</span>
+                    <span className="ml-2 capitalize">{selectedJob.employmentType || selectedJob.jobType}</span>
                   </div>
                   <div>
                     <span className="font-semibold">Work Mode:</span>
@@ -227,97 +415,137 @@ export default function EmployerJobs() {
 
               {/* Applications */}
               <div>
-                <h4 className="text-lg font-semibold mb-4">
-                  Applications ({applications.length})
+                <h4 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2 flex items-center justify-between">
+                  <span>Applicants ({applications.length})</span>
+                  {applications.length > 0 && (
+                    <span className="text-xs text-gray-500 font-normal">Sorted by Compatibility Score Descending</span>
+                  )}
                 </h4>
                 {applications.length > 0 ? (
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {applications.map((app) => (
-                      <div
-                        key={app._id}
-                        className="border border-gray-200 rounded-lg p-4"
-                      >
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="font-semibold text-gray-900">
-                              {app.candidate?.name}
-                            </p>
-                            <p className="text-sm text-gray-600">{app.candidate?.email}</p>
-                          </div>
-                          <span
-                            className={`text-xs badge ${
-                                app.status === 'shortlisted'
-                                ? 'bg-primary-100 text-primary-700'
-                                : app.status === 'reviewed'
-                                ? 'badge-warning'
-                                : app.status === 'rejected'
-                                ? 'badge-danger'
-                                : 'badge-info'
-                            }`}
-                          >
-                            {app.status}
-                          </span>
-                        </div>
+                  <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
+                    {[...applications].map((app) => {
+                      const score = calculateAlgorithmicScore(selectedJob, app.candidate);
+                      return { app, score };
+                    }).sort((a, b) => b.score - a.score)
+                    .map(({ app, score }) => {
+                      const recommendation = score >= 80 ? 'Strong Match' : (score >= 50 ? 'Moderate Match' : 'Weak Match');
+                      
+                      let badgeColor = 'bg-gray-100 text-gray-800 border-gray-200';
+                      if (recommendation === 'Strong Match') {
+                        badgeColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                      } else if (recommendation === 'Moderate Match') {
+                        badgeColor = 'bg-amber-50 text-amber-700 border-amber-200';
+                      } else if (recommendation === 'Weak Match') {
+                        badgeColor = 'bg-rose-50 text-rose-700 border-rose-200';
+                      }
 
-                        {app.candidate && (
-                          <div className="mb-3">
-                            <div className="flex flex-wrap gap-1">
-                              {app.candidate.skills.slice(0, 5).map((skill, idx) => (
-                                <span key={idx} className="badge bg-gray-100 text-gray-700 text-xs">
-                                  {skill}
+                      let progressColor = 'bg-gray-400';
+                      if (score >= 80) progressColor = 'bg-emerald-500';
+                      else if (score >= 50) progressColor = 'bg-amber-500';
+                      else progressColor = 'bg-rose-500';
+
+                      return (
+                        <div
+                          key={app._id}
+                          className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all duration-300 relative overflow-hidden animate-fadeIn"
+                        >
+                          <div className={`absolute top-0 left-0 right-0 h-1.5 ${progressColor}`} />
+
+                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <h5 className="font-bold text-gray-900 text-lg">
+                                  {app.candidate?.name}
+                                </h5>
+                                <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full border ${badgeColor}`}>
+                                  {recommendation}
                                 </span>
-                              ))}
+                              </div>
+                              <p className="text-sm text-gray-500 mt-0.5">{app.candidate?.email}</p>
+                            </div>
+
+                            <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-xl border border-gray-100">
+                              <div className="text-right">
+                                <span className="block text-[10px] text-gray-400 font-bold uppercase tracking-wider">Match Score</span>
+                                <span className={`text-2xl font-black ${score >= 80 ? 'text-emerald-600' : score >= 50 ? 'text-amber-600' : 'text-rose-600'}`}>
+                                  {score}%
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        )}
 
-                        <div className="flex gap-2">
-                          {app.candidate?.cvUrl && (
-                            <a
-                              href={app.candidate.cvUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs btn-secondary py-1 px-3"
-                            >
-                              View CV
-                            </a>
+                          {/* Candidate Skills */}
+                          {app.candidate && app.candidate.skills && app.candidate.skills.length > 0 && (
+                            <div className="mb-4">
+                              <span className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Candidate Skills</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {app.candidate.skills.slice(0, 8).map((skill, idx) => (
+                                  <span key={idx} className="bg-gray-50 border border-gray-100 text-gray-600 text-xs px-2.5 py-0.5 rounded-md font-medium">
+                                    {skill}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
                           )}
-                          {app.status === 'pending' && (
-                            <button
-                              onClick={() => handleUpdateStatus(app._id, 'reviewed')}
-                              className="text-xs btn-primary py-1 px-3"
-                            >
-                              Mark Reviewed
-                            </button>
-                          )}
-                          {app.status === 'reviewed' && (
-                            <button
-                              onClick={() => handleUpdateStatus(app._id, 'shortlisted')}
-                              className="text-xs bg-primary-600 text-white px-3 py-1 rounded hover:bg-primary-700"
-                            >
-                              Shortlist
-                            </button>
-                          )}
-                          {app.status !== 'rejected' && (
-                            <button
-                              onClick={() => handleUpdateStatus(app._id, 'rejected')}
-                              className="text-xs btn-danger py-1 px-3"
-                            >
-                              Reject
-                            </button>
-                          )}
-                          {(app.status === 'shortlisted' || app.status === 'reviewed') && (
-                            <button
-                              onClick={() => handleScheduleInterview(app)}
-                              className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 flex items-center gap-1"
-                            >
-                              <FiCalendar />
-                              Schedule Interview
-                            </button>
-                          )}
+
+                          {/* Action Buttons Section */}
+                          <div className="flex flex-wrap gap-2.5 items-center pt-3 border-t border-gray-100 justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-400">Application Status:</span>
+                              <span className="text-xs font-semibold uppercase text-gray-500 tracking-wider">
+                                {app.status}
+                              </span>
+                            </div>
+                            <div className="flex gap-2">
+                              {app.candidate?.cvUrl && (
+                                <a
+                                  href={app.candidate.cvUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs btn-secondary py-1.5 px-3 flex items-center gap-1 hover:bg-gray-100 font-medium rounded-lg"
+                                >
+                                  <FiEye className="text-gray-500" />
+                                  View CV
+                                </a>
+                              )}
+                              {app.status === 'pending' && (
+                                <button
+                                  onClick={() => handleUpdateStatus(app._id, 'reviewed')}
+                                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-1.5 rounded-lg transition-colors"
+                                >
+                                  Mark Reviewed
+                                </button>
+                              )}
+                              {app.status === 'reviewed' && (
+                                <button
+                                  onClick={() => handleUpdateStatus(app._id, 'shortlisted')}
+                                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium px-3.5 py-1.5 rounded-lg transition-colors"
+                                >
+                                  Shortlist
+                                </button>
+                              )}
+                              {app.status !== 'rejected' && (
+                                <button
+                                  onClick={() => handleUpdateStatus(app._id, 'rejected')}
+                                  className="text-xs border border-rose-200 text-rose-600 hover:bg-rose-50 font-medium px-3.5 py-1.5 rounded-lg transition-colors"
+                                >
+                                  Reject
+                                </button>
+                              )}
+                              {(app.status === 'shortlisted' || app.status === 'reviewed') && (
+                                <button
+                                  onClick={() => handleScheduleInterview(app)}
+                                  className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                                >
+                                  <FiCalendar />
+                                  Schedule Interview
+                                </button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-gray-500 text-center py-8">No applications yet</p>

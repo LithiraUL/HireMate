@@ -6,6 +6,8 @@ RESTful API for the HireMate recruitment management system built with Node.js, E
 
 -  User authentication with JWT
 -  Role-based access control (Candidate, Employer, Admin)
+-  API Rate Limiting on critical routes
+-  Cryptographically secure password recovery (Forgot / Reset Password flows)
 -  Job posting and management
 -  Application tracking
 -  Interview scheduling with email notifications
@@ -127,7 +129,9 @@ Server will run on `http://localhost:5000`
 
 ### Authentication
 - `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login user
+- `POST /api/auth/login` - Login user (Rate limited: max 20 requests per 15 minutes)
+- `POST /api/auth/forgot-password` - Request a password reset link (Rate limited: max 5 requests per 15 minutes)
+- `POST /api/auth/reset-password/:token` - Reset password using a valid token
 - `GET /api/auth/me` - Get current user (protected)
 
 ### Users
@@ -236,6 +240,11 @@ Headers: { "Authorization": "Bearer <your_token>" }
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret | Yes |
 | `EMAIL_USER` | Gmail address | Yes |
 | `EMAIL_PASSWORD` | Gmail app password | Yes |
+| `OLLAMA_URL` | Local Ollama API host (e.g. `http://localhost:11434`) | Yes |
+| `OLLAMA_MODEL` | Local Ollama model name (e.g. `llama3.2:3b`) | Yes |
+| `AI_TIMEOUT` | Generic AI request timeout (e.g. `120000`) | No |
+| `AI_TIMEOUT_RANKING` | Timeout for AI candidate ranking (e.g. `120000`) | No |
+| `AI_TIMEOUT_PARSING` | Timeout for AI resume parsing (e.g. `120000`) | No |
 
 ## Error Handling
 
@@ -260,8 +269,10 @@ Success responses:
 
 ## Security Features
 
-- Password hashing with bcryptjs
-- JWT authentication
+- Password hashing with bcryptjs (10 rounds)
+- JWT authentication with secure role separation
+- API rate limiting (login, password reset) using express-rate-limit
+- Cryptographically secure SHA-256 hashed password reset tokens
 - Role-based authorization
 - CORS protection
 - Environment variable protection

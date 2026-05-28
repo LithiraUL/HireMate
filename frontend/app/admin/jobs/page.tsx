@@ -121,6 +121,7 @@ export default function ManageJobs() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="input-field pl-10 w-full"
+                  style={{ paddingLeft: '2.5rem' }}
                 />
               </div>
             </div>
