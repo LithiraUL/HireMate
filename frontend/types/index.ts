@@ -135,16 +135,30 @@ export interface Interview {
   interviewId?: string; // Alias for _id
   applicationId?: string;
   application?: string;
-  job: {
+  job?: {
     _id: string;
     title: string;
   };
-  candidate: {
+  jobId?: {
+    _id: string;
+    title: string;
+  };
+  candidate?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+  candidateId?: {
     _id: string;
     name: string;
     email: string;
   };
   employer?: {
+    _id: string;
+    name: string;
+    companyName?: string;
+  };
+  employerId?: {
     _id: string;
     name: string;
     companyName?: string;

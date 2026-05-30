@@ -394,13 +394,35 @@ MongoDB Database
 
 ---
 
+### 🚀 Interactive Candidate Weighting Adjustments & Dynamic System Upgrades
+
+We have introduced customizable weighting priorities for candidates, alongside multiple key performance fixes and backend data populators:
+
+#### 1. Dynamic Weighting & Auto-Normalization
+* **Collapsible Weights Panel**:
+  - Employers can temporarily customize the weights for **Skills, Experience, Preferences, Education, and Age** (defaulting to `40, 25, 15, 10, 10`).
+  - Implemented inside **Talent Discovery** (Employer → Candidates) and the active **Job Details & Applications** modal (Employer → Jobs).
+  - Offers **live summation validation** (warning if weights do not sum to 100).
+* **Robust Backend Normalization**:
+  - The compatible candidates route was converted to a structured `POST` endpoint to handle weights securely in request bodies.
+  - The backend compatibility engine automatically **normalizes** custom weights to sum to exactly 100 in case of non-100 subsets, eliminating potential rating anomalies.
+  - Candidates are successfully re-sorted by finalized scores (AI + fallback) before absolute ranks (`#1`, `#2`, etc.) are assigned.
+
+#### 2. Timezone & Data Population Refinements
+* **Candidate Applications Population**: Fixed a backend populator gap; `employer.companyName` is now nested-populated on candidate application queries, displaying the company name successfully.
+* **Scheduled Interview Card Populators**: Mapped the frontend candidate dashboard cards to correctly fetch the `jobId` and `employerId` database schemas, presenting correct position titles and company names instead of placeholders.
+* **UTC Timezone display bugfix**: Configured the dashboard to display the exact scheduled `time` string directly from the database, resolving the GMT/UTC offset issue showing `5:30 am`.
+* **Clean Card Actions**: Removed the "Edit" action from employer job cards based on card props.
+
+---
+
 ## 5. 📈 Implementation Metrics & Support
 
 ### Implementation Metrics
-* **Total Production Code Files**: 60+
-* **Total Platform Endpoints**: 42+
+* **Total Production Code Files**: 62+
+* **Total Platform Endpoints**: 43+
 * **Total Next.js App Routes**: 27
-* **Codebase Size**: ~8,000+ lines
+* **Codebase Size**: ~8,300+ lines
 * **Phase 1 Completion**: 100%
 * **Phase 2 Completion**: 100%
 

@@ -35,8 +35,13 @@ export const jobService = {
     await api.post(`/jobs/${jobId}/invite`, { candidateId, positionTitle, message });
   },
 
-  async getCompatibleCandidates(jobId: string, page = 1, limit = 20): Promise<{ candidates: any[], total: number, pages: number }> {
-    const response = await api.get(`/jobs/${jobId}/compatible-candidates?page=${page}&limit=${limit}`);
+  async getCompatibleCandidates(
+    jobId: string, 
+    page = 1, 
+    limit = 20, 
+    weights?: { skills: number; experience: number; preferences: number; education: number; age: number }
+  ): Promise<{ candidates: any[]; total: number; pages: number }> {
+    const response = await api.post(`/jobs/${jobId}/compatible-candidates`, { page, limit, weights });
     return response.data;
   },
 };

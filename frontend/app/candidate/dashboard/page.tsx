@@ -190,10 +190,10 @@ export default function CandidateDashboard() {
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900 mb-1">
-                          {interview.job?.title || 'Position Interview'}
+                          {interview.jobId?.title || interview.job?.title || 'Position Interview'}
                         </h4>
                         <p className="text-sm text-gray-600 mb-2">
-                          {interview.job?.employer?.companyName || 'Company'}
+                          {interview.employerId?.companyName || interview.employer?.companyName || 'Company'}
                         </p>
                         <div className="flex items-center gap-4 text-sm text-gray-700">
                           <span className="flex items-center gap-1">
@@ -206,10 +206,7 @@ export default function CandidateDashboard() {
                             })}
                           </span>
                           <span className="font-medium">
-                            {new Date(interview.date).toLocaleTimeString('en-US', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {interview.time}
                           </span>
                         </div>
                       </div>

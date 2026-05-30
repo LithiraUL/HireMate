@@ -29,6 +29,16 @@ export default function EmployerCandidates() {
   const [aiRecommendationJobId, setAiRecommendationJobId] = useState<string>('');
   const [recommendedCandidates, setRecommendedCandidates] = useState<any[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  
+  const defaultWeights = {
+    skills: 40,
+    experience: 25,
+    preferences: 15,
+    education: 10,
+    age: 10
+  };
+  const [weights, setWeights] = useState(defaultWeights);
 
   const [filters, setFilters] = useState<FilterCriteria>({
     employmentType: undefined,
@@ -145,16 +155,21 @@ export default function EmployerCandidates() {
     }
   };
 
-  const fetchRecommendations = async (jobId: string) => {
+  const fetchRecommendations = async (jobId: string, customWeights?: typeof weights) => {
     setAiRecommendationJobId(jobId);
     if (!jobId) {
       setRecommendedCandidates([]);
+      setWeights(defaultWeights);
       return;
+    }
+    
+    if (!customWeights) {
+      setWeights(defaultWeights);
     }
     
     setAiLoading(true);
     try {
-      const data = await jobService.getCompatibleCandidates(jobId);
+      const data = await jobService.getCompatibleCandidates(jobId, 1, 20, customWeights);
       setRecommendedCandidates(data.candidates || []);
     } catch (error) {
       console.error('Error fetching recommendations:', error);
@@ -208,7 +223,114 @@ export default function EmployerCandidates() {
                 <option key={job._id} value={job._id}>{job.title}</option>
               ))}
             </select>
+            {aiRecommendationJobId && (
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="btn-secondary flex items-center gap-2 text-sm px-4 py-2"
+              >
+                <FiFilter className="h-4 w-4" />
+                {showSettings ? 'Hide Settings' : 'Adjust Weights'}
+              </button>
+            )}
           </div>
+
+          {showSettings && aiRecommendationJobId && (
+            <div className="mt-4 p-5 bg-gray-50 border border-gray-200 rounded-lg space-y-4 max-w-3xl">
+              <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                <h3 className="font-semibold text-gray-900">Custom Ranking Weights</h3>
+                <span className={`text-sm font-bold ${
+                  (weights.skills + weights.experience + weights.preferences + weights.education + weights.age) === 100 
+                    ? 'text-green-600' 
+                    : 'text-red-500'
+                }`}>
+                  Total Weight: {weights.skills + weights.experience + weights.preferences + weights.education + weights.age}/100
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Skills (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={weights.skills}
+                    onChange={(e) => setWeights({ ...weights, skills: parseInt(e.target.value) || 0 })}
+                    className="input-field py-1 px-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Experience (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={weights.experience}
+                    onChange={(e) => setWeights({ ...weights, experience: parseInt(e.target.value) || 0 })}
+                    className="input-field py-1 px-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Preferences (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={weights.preferences}
+                    onChange={(e) => setWeights({ ...weights, preferences: parseInt(e.target.value) || 0 })}
+                    className="input-field py-1 px-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Education (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={weights.education}
+                    onChange={(e) => setWeights({ ...weights, education: parseInt(e.target.value) || 0 })}
+                    className="input-field py-1 px-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Age (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={weights.age}
+                    onChange={(e) => setWeights({ ...weights, age: parseInt(e.target.value) || 0 })}
+                    className="input-field py-1 px-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    setWeights(defaultWeights);
+                    fetchRecommendations(aiRecommendationJobId, defaultWeights);
+                  }}
+                  className="btn-secondary text-xs px-3 py-1.5"
+                >
+                  Reset to Default
+                </button>
+                <button
+                  onClick={() => fetchRecommendations(aiRecommendationJobId, weights)}
+                  disabled={(weights.skills + weights.experience + weights.preferences + weights.education + weights.age) !== 100}
+                  className="btn-primary text-xs px-3 py-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Apply & Re-rank
+                </button>
+              </div>
+              
+              {(weights.skills + weights.experience + weights.preferences + weights.education + weights.age) !== 100 && (
+                <p className="text-xs text-red-500 font-medium mt-1">
+                  * The total weight must sum to exactly 100 before you can apply changes.
+                </p>
+              )}
+            </div>
+          )}
           
           {aiLoading && <div className="mt-4 py-4 text-center text-blue-600 font-medium">Analyzing candidate pool...</div>}
           

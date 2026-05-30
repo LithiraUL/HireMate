@@ -114,6 +114,11 @@ export default function CandidateApplications() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
+                    {application.job?.employer?.companyName && (
+                      <span className="text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-md uppercase tracking-wider">
+                        {application.job.employer.companyName}
+                      </span>
+                    )}
                     <span className={`badge ${getStatusBadgeClass(application.status)}`}>
                       {application.status}
                     </span>
@@ -181,7 +186,7 @@ export default function CandidateApplications() {
                 </div>
                 <div>
                   <span className="font-semibold">Job Type:</span>
-                  <span className="ml-2 capitalize">{selectedApp.job.jobType}</span>
+                  <span className="ml-2 capitalize">{selectedApp.job.employmentType || selectedApp.job.jobType}</span>
                 </div>
                 <div>
                   <span className="font-semibold">Work Mode:</span>

@@ -68,7 +68,7 @@ export default function ManageJobs() {
     }
 
     if (jobTypeFilter !== 'all') {
-      filtered = filtered.filter(job => job.jobType === jobTypeFilter);
+      filtered = filtered.filter(job => (job.employmentType || job.jobType) === jobTypeFilter);
     }
 
     setFilteredJobs(filtered);

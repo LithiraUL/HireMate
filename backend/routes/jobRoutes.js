@@ -331,10 +331,10 @@ router.post('/:jobId/invite', protect, authorize('employer'), async (req, res) =
   }
 });
 
-// @route   GET /api/jobs/:jobId/compatible-candidates
+// @route   POST /api/jobs/:jobId/compatible-candidates
 // @desc    Get ranked list of compatible candidates for a job
 // @access  Private (Employer only)
-router.get(
+router.post(
   '/:jobId/compatible-candidates',
   protect,
   authorize('employer'),

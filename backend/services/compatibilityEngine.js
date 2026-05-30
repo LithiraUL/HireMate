@@ -149,9 +149,10 @@ const calculateEducationOverlap = (job, candidate) => {
  * 
  * @param {Object} job - The job object.
  * @param {Object} candidate - The candidate object.
+ * @param {Object} [weights] - Optional dynamic weights.
  * @returns {number} The final compatibility score (0-100).
  */
-const calculateCompatibilityOld = (job, candidate) => {
+const calculateCompatibilityOld = (job, candidate, weights = null) => {
   if (!job || !candidate) return 0;
 
   // Merge raw profile skills and AI extracted skills
@@ -164,18 +165,41 @@ const calculateCompatibilityOld = (job, candidate) => {
   const preferenceScore = calculatePreferenceOverlap(job, candidate);
   const ageScore = calculateAgeOverlap(job, candidate);
 
-  // 2. Apply weights:
-  // - Skills: 40%
-  // - Experience: 25%
-  // - Education: 10%
-  // - Preferences: 15%
-  // - Age: 10%
+  // 2. Resolve weights: default to 40/25/15/10/10, dynamic override, auto-normalize if total !== 100
+  let w = {
+    skills: 40,
+    experience: 25,
+    preferences: 15,
+    education: 10,
+    age: 10
+  };
+
+  if (weights && typeof weights === 'object') {
+    w = {
+      skills: typeof weights.skills === 'number' ? weights.skills : 40,
+      experience: typeof weights.experience === 'number' ? weights.experience : 25,
+      preferences: typeof weights.preferences === 'number' ? weights.preferences : 15,
+      education: typeof weights.education === 'number' ? weights.education : 10,
+      age: typeof weights.age === 'number' ? weights.age : 10
+    };
+
+    const total = w.skills + w.experience + w.preferences + w.education + w.age;
+    if (total !== 100 && total > 0) {
+      w.skills = (w.skills / total) * 100;
+      w.experience = (w.experience / total) * 100;
+      w.preferences = (w.preferences / total) * 100;
+      w.education = (w.education / total) * 100;
+      w.age = (w.age / total) * 100;
+    }
+  }
+
+  // 3. Apply weights (divided by 100)
   const finalScore = 
-    (skillScore * 0.40) + 
-    (experienceScore * 0.25) + 
-    (educationScore * 0.10) + 
-    (preferenceScore * 0.15) + 
-    (ageScore * 0.10);
+    (skillScore * (w.skills / 100)) + 
+    (experienceScore * (w.experience / 100)) + 
+    (educationScore * (w.education / 100)) + 
+    (preferenceScore * (w.preferences / 100)) + 
+    (ageScore * (w.age / 100));
 
   return Math.round(finalScore);
 };
@@ -183,8 +207,8 @@ const calculateCompatibilityOld = (job, candidate) => {
 /**
  * Helper to compute and return a standard fallback evaluation response.
  */
-const useFallbackScoring = (job, candidate) => {
-  const fallbackScore = calculateCompatibilityOld(job, candidate);
+const useFallbackScoring = (job, candidate, weights = null) => {
+  const fallbackScore = calculateCompatibilityOld(job, candidate, weights);
   const recommendation = fallbackScore >= 80 ? 'Strong Match' : (fallbackScore >= 50 ? 'Moderate Match' : 'Weak Match');
   
   return {
@@ -202,9 +226,10 @@ const useFallbackScoring = (job, candidate) => {
  * 
  * @param {Object} job - The job object.
  * @param {Object} candidate - The candidate object.
+ * @param {Object} [weights] - Optional dynamic weights.
  * @returns {Promise<Object>} An object containing the score, strengths, weaknesses, summary, and recommendation.
  */
-const calculateCompatibility = async (job, candidate) => {
+const calculateCompatibility = async (job, candidate, weights = null) => {
   if (!job || !candidate) {
     return {
       score: 0,
@@ -233,7 +258,7 @@ const calculateCompatibility = async (job, candidate) => {
     // 3. Validate AI outcome, drop to traditional model if fallback response detected
     if (!aiResult || aiResult.score === 0 || aiResult.summary.includes('unavailable')) {
       console.log('[COMPATIBILITY ENGINE] AI evaluation was unavailable or returned default score. Activating traditional fallback scoring...');
-      return useFallbackScoring(job, candidate);
+      return useFallbackScoring(job, candidate, weights);
     }
 
     console.log(`[COMPATIBILITY ENGINE] DeepSeek AI evaluation succeeded for ${candidate.name || 'candidate'}. Score: ${aiResult.score}`);
@@ -241,7 +266,7 @@ const calculateCompatibility = async (job, candidate) => {
 
   } catch (error) {
     console.error('[COMPATIBILITY ENGINE] Error during AI ranking execution. Falling back to traditional scoring:', error.message);
-    return useFallbackScoring(job, candidate);
+    return useFallbackScoring(job, candidate, weights);
   }
 };
 

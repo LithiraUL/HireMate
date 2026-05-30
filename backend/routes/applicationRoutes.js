@@ -110,7 +110,14 @@ router.post('/', protect, authorize('candidate'), async (req, res) => {
 router.get('/candidate/my-applications', protect, authorize('candidate'), async (req, res) => {
   try {
     const applications = await Application.find({ candidate: req.user.id })
-      .populate('job', 'title description employmentType workMode salaryRange location status')
+      .populate({
+        path: 'job',
+        select: 'title description employmentType workMode salaryRange location status employer',
+        populate: {
+          path: 'employer',
+          select: 'companyName'
+        }
+      })
       .sort({ createdAt: -1 });
 
     res.status(200).json({

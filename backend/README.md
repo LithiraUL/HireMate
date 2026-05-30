@@ -148,6 +148,7 @@ Server will run on `http://localhost:5000`
 - `PUT /api/jobs/:id` - Update job (employer only)
 - `DELETE /api/jobs/:id` - Delete job (employer only)
 - `GET /api/jobs/employer/my-jobs` - Get employer's jobs
+- `POST /api/jobs/:jobId/compatible-candidates` - Get custom-weighted ranked candidates pool with sequential AI evaluation (employer only)
 
 ### Applications
 - `POST /api/applications` - Apply for job (candidate only)

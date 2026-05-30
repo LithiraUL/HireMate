@@ -19,9 +19,12 @@ const { generateRankingExplanation } = require('../services/ai/rankingExplanatio
 const getCompatibleCandidates = async (req, res) => {
   try {
     const { jobId } = req.params;
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const page = parseInt(req.body.page || req.query.page, 10) || 1;
+    const limit = parseInt(req.body.limit || req.query.limit, 10) || 20;
     const skip = (page - 1) * limit;
+
+    // Retrieve dynamic weights from request body
+    const weights = req.body.weights || null;
 
     // 1. Fetch job from DB
     const job = await Job.findById(jobId);
@@ -54,7 +57,7 @@ const getCompatibleCandidates = async (req, res) => {
     const scoredCandidates = candidates.map((candidate) => {
       const combinedSkills = [...new Set([...(candidate.skills || []), ...(candidate.extractedSkills || [])])];
       
-      const baseScore = calculateCompatibilityOld(job, candidate);
+      const baseScore = calculateCompatibilityOld(job, candidate, weights);
       
       const breakdown = {
         skillScore: calculateSkillOverlap(combinedSkills, job.requiredSkills),
@@ -90,7 +93,7 @@ const getCompatibleCandidates = async (req, res) => {
       let aiResult;
       try {
         // Calls the local Ollama screening engine (which has fallback logic built-in)
-        aiResult = await calculateCompatibility(job, candidate);
+        aiResult = await calculateCompatibility(job, candidate, weights);
       } catch (err) {
         console.error(`[RECOMMENDATION PROCESS] AI screening failed for candidate ${candidate.name}:`, err.message);
         aiResult = {
@@ -137,6 +140,9 @@ const getCompatibleCandidates = async (req, res) => {
     });
 
     const combinedFinalized = [...finalizedTopCandidates, ...finalizedRemainingCandidates];
+
+    // Re-sort the combined list based on finalized compatibility scores (AI or traditional fallback)
+    combinedFinalized.sort((a, b) => b.compatibilityScore - a.compatibilityScore);
 
     // Assign absolute ranks
     const finalizedCandidates = combinedFinalized.map((candidate, index) => {

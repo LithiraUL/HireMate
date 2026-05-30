@@ -90,10 +90,10 @@ const normalizeSkillsArray = (skillsArray: string[]): string[] => {
 };
 
 // Algorithmic compatibility calculator matching backend compatibilityEngine.js logic
-const calculateAlgorithmicScore = (job: any, candidate: any): number => {
+const calculateAlgorithmicScore = (job: any, candidate: any, weights?: { skills: number, experience: number, preferences: number, education: number, age: number }): number => {
   if (!job || !candidate) return 0;
 
-  // 1. Skills Overlap (40%)
+  // 1. Skills Overlap
   const combinedSkills = Array.from(new Set([
     ...(candidate.skills || []),
     ...(candidate.extractedSkills || [])
@@ -113,7 +113,7 @@ const calculateAlgorithmicScore = (job: any, candidate: any): number => {
     skillScore = Math.round((matchCount / normalizedJobSkills.length) * 100);
   }
 
-  // 2. Experience Overlap (25%)
+  // 2. Experience Overlap
   const requiredExp = job.experienceRequired || 0;
   let experienceScore = 100;
   if (requiredExp > 0) {
@@ -125,7 +125,7 @@ const calculateAlgorithmicScore = (job: any, candidate: any): number => {
     }
   }
 
-  // 3. Education Overlap (10%)
+  // 3. Education Overlap
   let educationScore = 100;
   if (job.educationRequired) {
     if (!candidate.educationLevel) {
@@ -141,7 +141,7 @@ const calculateAlgorithmicScore = (job: any, candidate: any): number => {
     }
   }
 
-  // 4. Preference Overlap (15%)
+  // 4. Preference Overlap
   const jobEmploymentType = job.employmentType || job.jobType;
   const jobWorkMode = job.workMode;
   
@@ -171,7 +171,7 @@ const calculateAlgorithmicScore = (job: any, candidate: any): number => {
   if (preferenceMatches === 2) preferenceScore = 100;
   else if (preferenceMatches === 1) preferenceScore = 50;
 
-  // 5. Age Overlap (10%)
+  // 5. Age Overlap
   let ageScore = 100;
   if (job.ageRange && (job.ageRange.min || job.ageRange.max)) {
     if (!candidate.age) {
@@ -188,12 +188,40 @@ const calculateAlgorithmicScore = (job: any, candidate: any): number => {
     }
   }
 
+  // Resolve weights
+  let w = {
+    skills: 40,
+    experience: 25,
+    preferences: 15,
+    education: 10,
+    age: 10
+  };
+
+  if (weights) {
+    w = {
+      skills: typeof weights.skills === 'number' ? weights.skills : 40,
+      experience: typeof weights.experience === 'number' ? weights.experience : 25,
+      preferences: typeof weights.preferences === 'number' ? weights.preferences : 15,
+      education: typeof weights.education === 'number' ? weights.education : 10,
+      age: typeof weights.age === 'number' ? weights.age : 10
+    };
+
+    const total = w.skills + w.experience + w.preferences + w.education + w.age;
+    if (total !== 100 && total > 0) {
+      w.skills = (w.skills / total) * 100;
+      w.experience = (w.experience / total) * 100;
+      w.preferences = (w.preferences / total) * 100;
+      w.education = (w.education / total) * 100;
+      w.age = (w.age / total) * 100;
+    }
+  }
+
   const finalScore = 
-    (skillScore * 0.40) + 
-    (experienceScore * 0.25) + 
-    (educationScore * 0.10) + 
-    (preferenceScore * 0.15) + 
-    (ageScore * 0.10);
+    (skillScore * (w.skills / 100)) + 
+    (experienceScore * (w.experience / 100)) + 
+    (educationScore * (w.education / 100)) + 
+    (preferenceScore * (w.preferences / 100)) + 
+    (ageScore * (w.age / 100));
 
   return Math.round(finalScore);
 };
@@ -214,6 +242,16 @@ export default function EmployerJobs() {
     meetingLink: '',
     notes: ''
   });
+
+  const defaultWeights = {
+    skills: 40,
+    experience: 25,
+    preferences: 15,
+    education: 10,
+    age: 10
+  };
+  const [weights, setWeights] = useState(defaultWeights);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (!authLoading && (!user || user.role !== 'employer')) {
@@ -247,6 +285,8 @@ export default function EmployerJobs() {
   };
 
   const handleViewJob = async (job: Job) => {
+    setWeights(defaultWeights);
+    setShowSettings(false);
     setSelectedJob(job);
     await loadApplications(job._id);
   };
@@ -349,7 +389,6 @@ export default function EmployerJobs() {
                 job={job}
                 onClick={() => handleViewJob(job)}
                 showActions
-                onEdit={() => router.push(`/employer/edit-job/${job._id}`)}
                 onDelete={() => setShowDeleteConfirm(job._id)}
               />
             ))}
@@ -369,7 +408,11 @@ export default function EmployerJobs() {
         {/* Job Details Modal */}
         <Modal
           isOpen={!!selectedJob}
-          onClose={() => setSelectedJob(null)}
+          onClose={() => {
+            setSelectedJob(null);
+            setWeights(defaultWeights);
+            setShowSettings(false);
+          }}
           title="Job Details & Applications"
           size="xl"
         >
@@ -415,16 +458,115 @@ export default function EmployerJobs() {
 
               {/* Applications */}
               <div>
-                <h4 className="text-lg font-semibold mb-4 text-gray-900 border-b pb-2 flex items-center justify-between">
-                  <span>Applicants ({applications.length})</span>
+                <div className="flex justify-between items-center border-b pb-2 mb-4">
+                  <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <span>Applicants ({applications.length})</span>
+                    {applications.length > 0 && (
+                      <span className="text-xs text-gray-500 font-normal hidden sm:inline">Sorted by Compatibility Score Descending</span>
+                    )}
+                  </h4>
                   {applications.length > 0 && (
-                    <span className="text-xs text-gray-500 font-normal">Sorted by Compatibility Score Descending</span>
+                    <button
+                      onClick={() => setShowSettings(!showSettings)}
+                      className="btn-secondary flex items-center gap-1.5 text-xs py-1 px-3"
+                    >
+                      <FiEdit className="h-3 w-3" />
+                      {showSettings ? 'Hide Weights' : 'Adjust Weights'}
+                    </button>
                   )}
-                </h4>
+                </div>
+
+                {showSettings && applications.length > 0 && (
+                  <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg space-y-4 animate-fadeIn">
+                    <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+                      <span className="text-sm font-semibold text-gray-700">Custom Match Weights</span>
+                      <span className={`text-xs font-bold ${
+                        (weights.skills + weights.experience + weights.preferences + weights.education + weights.age) === 100 
+                          ? 'text-green-600' 
+                          : 'text-red-500'
+                      }`}>
+                        Total: {weights.skills + weights.experience + weights.preferences + weights.education + weights.age}/100
+                      </span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Skills (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={weights.skills}
+                          onChange={(e) => setWeights({ ...weights, skills: parseInt(e.target.value) || 0 })}
+                          className="input-field py-1 px-2 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Experience (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={weights.experience}
+                          onChange={(e) => setWeights({ ...weights, experience: parseInt(e.target.value) || 0 })}
+                          className="input-field py-1 px-2 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Preferences (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={weights.preferences}
+                          onChange={(e) => setWeights({ ...weights, preferences: parseInt(e.target.value) || 0 })}
+                          className="input-field py-1 px-2 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Education (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={weights.education}
+                          onChange={(e) => setWeights({ ...weights, education: parseInt(e.target.value) || 0 })}
+                          className="input-field py-1 px-2 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Age (%)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={weights.age}
+                          onChange={(e) => setWeights({ ...weights, age: parseInt(e.target.value) || 0 })}
+                          className="input-field py-1 px-2 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2.5 pt-1.5 border-t border-gray-200">
+                      <button
+                        onClick={() => setWeights(defaultWeights)}
+                        className="btn-secondary text-[11px] py-1 px-2.5"
+                      >
+                        Reset to Default
+                      </button>
+                    </div>
+                    
+                    {(weights.skills + weights.experience + weights.preferences + weights.education + weights.age) !== 100 && (
+                      <p className="text-[10px] text-red-500 font-medium mt-1">
+                        * The total weight must sum to exactly 100 before scores can recalculate correctly.
+                      </p>
+                    )}
+                  </div>
+                )}
                 {applications.length > 0 ? (
                   <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1">
                     {[...applications].map((app) => {
-                      const score = calculateAlgorithmicScore(selectedJob, app.candidate);
+                      const score = calculateAlgorithmicScore(selectedJob, app.candidate, weights);
                       return { app, score };
                     }).sort((a, b) => b.score - a.score)
                     .map(({ app, score }) => {

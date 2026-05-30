@@ -23,6 +23,7 @@ AI-powered recruitment management system for SMEs in Sri Lanka. A comprehensive 
 - ✅ Track applications and manage hiring pipeline with status updates
 - ✅ Access analytics dashboard (hiring trends, time-to-hire, demographics)
 - ✅ Differentiated job management vs talent discovery pages
+- ✅ **Dynamic Candidate Weighting & Re-ranking:** Temporarily customize matching priorities for Skills, Experience, Preferences, Education, and Age directly on the Talent Discovery dashboard or active Job Applications modal view.
 
 ### For Administrators
 - ✅ Manage all users (candidates, employers, admins)

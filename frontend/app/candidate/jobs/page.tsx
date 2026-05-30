@@ -86,7 +86,7 @@ export default function CandidateJobs() {
 
     // Job type filter
     if (filters.jobType) {
-      filtered = filtered.filter((job) => job.jobType === filters.jobType);
+      filtered = filtered.filter((job) => (job.employmentType || job.jobType) === filters.jobType);
     }
 
     // Work mode filter
@@ -225,7 +225,7 @@ export default function CandidateJobs() {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="font-semibold">Job Type:</span>
-                  <span className="ml-2 capitalize">{selectedJob.jobType}</span>
+                  <span className="ml-2 capitalize">{selectedJob.employmentType || selectedJob.jobType}</span>
                 </div>
                 <div>
                   <span className="font-semibold">Work Mode:</span>

@@ -20,6 +20,7 @@ HireMate is a comprehensive recruitment management system designed for Small and
 - 🤖 **AI-Driven Recruitment Engine** (Local Ollama Llama 3.2:3b model integration)
 - 📝 **Smart CV Parsing** (Automated skill, experience & education extraction via local Ollama)
 - 🎯 **Intelligent Match Scoring** (Multi-vector candidate/job compatibility algorithm)
+- ⚙️ **Dynamic Ranking Weights** (Interactive weights customization for Skills, Experience, Preferences, Education, and Age with real-time automatic normalization and re-ranking)
 - 🧠 **AI HR Summaries** (Natural language candidate ranking explanations)
 - 📄 **CV Upload & Management** (Cloudinary integration)
 - 📧 **Automated Email Notifications** (NodeMailer with HTML templates)
